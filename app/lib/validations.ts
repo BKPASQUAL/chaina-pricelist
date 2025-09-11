@@ -2,11 +2,12 @@ import { z } from "zod";
 
 // Schema for API validation (expects numbers)
 export const calculationSchema = z.object({
+  item_name: z.string().min(1, "Item name is required"),
   shop_name: z.string().min(1, "Shop name is required"),
-  qty: z.number().min(0.01, "Quantity must be greater than 0"),
-  rmb_price: z.number().min(0, "RMB price must be positive"),
-  cmb_rs: z.number().min(0, "CBM rate must be positive"),
-  extra_tax: z.number().min(0, "Extra tax must be positive"),
+  qty: z.number().positive("Quantity must be positive"),
+  rmb_price: z.number().min(0, "RMB price must be non-negative"),
+  cmb_rs: z.number().min(0, "CBM rate must be non-negative"),
+  extra_tax: z.number().min(0, "Extra tax must be non-negative"),
 });
 
 export type CalculationFormData = z.infer<typeof calculationSchema>;
@@ -21,5 +22,4 @@ export interface CalculationRecord extends CalculationFormData {
   final_value: number;
   exchange_rate: number;
   created_at: string;
-  
 }

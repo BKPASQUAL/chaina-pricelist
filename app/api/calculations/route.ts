@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate input
+    // Validate input - make sure to update your validation schema to include item_name
     const validatedData = calculationSchema.parse(body);
 
     // Get exchange rate from body or fetch current rate
@@ -28,6 +28,10 @@ export async function POST(request: NextRequest) {
     // Step 5: Final Value = LKR Amount + CBM LKR + Extra Tax
     const final_value = lkr_amount + cbm_lkr + validatedData.extra_tax;
 
+    // Step 6: Unit Price = Final Value ÷ Quantity
+    const unit_price =
+      validatedData.qty > 0 ? final_value / validatedData.qty : 0;
+
     const calculationData = {
       ...validatedData,
       rmb_amount,
@@ -35,6 +39,7 @@ export async function POST(request: NextRequest) {
       cbm_amount,
       cbm_lkr,
       final_value,
+      unit_price,
       exchange_rate: exchangeRate,
       created_at: new Date().toISOString(),
     };

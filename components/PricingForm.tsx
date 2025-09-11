@@ -16,6 +16,7 @@ import { formatCurrency } from "@/app/lib/utils";
 import { z } from "zod";
 
 const calculationFormSchema = z.object({
+  item_name: z.string().min(1, "Item name is required"),
   shop_name: z.string().min(1, "Shop name is required"),
   qty: z
     .string()
@@ -51,6 +52,7 @@ type CalculationFormData = z.infer<typeof calculationFormSchema>;
 // Database record type with computed values
 interface CalculationRecord {
   id?: string;
+  item_name: string;
   shop_name: string;
   qty: number;
   rmb_price: number;
@@ -61,6 +63,7 @@ interface CalculationRecord {
   cbm_amount: number;
   cbm_lkr: number;
   final_value: number;
+  unit_price: number;
   exchange_rate: number;
   created_at: string;
 }
@@ -84,6 +87,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     cbm_amount: 0,
     cbm_lkr: 0,
     final_value: 0,
+    unit_price: 0,
   });
 
   const {
@@ -95,6 +99,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   } = useForm<CalculationFormData>({
     resolver: zodResolver(calculationFormSchema),
     defaultValues: {
+      item_name: "",
       shop_name: "",
       qty: "",
       rmb_price: "",
@@ -151,12 +156,16 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     // Step 4: Calculate final value in LKR (LKR Amount + CBM LKR + Extra Tax)
     const final_value = lkr_amount + cbm_lkr + extraTaxNum;
 
+    // Step 5: Calculate unit price (Final Value ÷ Quantity)
+    const unit_price = qtyNum > 0 ? final_value / qtyNum : 0;
+
     setPreviewValues({
       rmb_amount,
       lkr_amount,
       cbm_amount: cbmRateNum, // Store the CBM rate for display
       cbm_lkr,
       final_value,
+      unit_price,
     });
   }, [qty, rmb_price, cbm_rate, extra_tax, exchangeRate]);
 
@@ -166,6 +175,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     try {
       // Convert string form data to numbers for database storage
       const numericData = {
+        item_name: data.item_name,
         shop_name: data.shop_name,
         qty: parseFloat(data.qty) || 0,
         rmb_price: parseFloat(data.rmb_price) || 0,
@@ -178,6 +188,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
       const lkr_amount = rmb_amount * exchangeRate;
       const cbm_lkr = lkr_amount * numericData.cmb_rs;
       const final_value = lkr_amount + cbm_lkr + numericData.extra_tax;
+      const unit_price =
+        numericData.qty > 0 ? final_value / numericData.qty : 0;
 
       const calculationData: Omit<CalculationRecord, "id" | "created_at"> = {
         ...numericData,
@@ -186,6 +198,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
         cbm_amount: lkr_amount * numericData.cmb_rs, // CBM amount in LKR
         cbm_lkr,
         final_value,
+        unit_price,
         exchange_rate: exchangeRate,
       };
 
@@ -286,6 +299,24 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
             className="space-y-4 sm:space-y-6"
           >
             <div className="space-y-4">
+              {/* Item Name Field */}
+              <div>
+                <Label htmlFor="item_name" className="text-sm font-medium">
+                  Item Name
+                </Label>
+                <Input
+                  id="item_name"
+                  {...register("item_name")}
+                  placeholder="Enter item name"
+                  className="mt-1"
+                />
+                {errors.item_name && (
+                  <p className="text-xs sm:text-sm text-red-600 mt-1">
+                    {errors.item_name.message}
+                  </p>
+                )}
+              </div>
+
               <div>
                 <Label htmlFor="shop_name" className="text-sm font-medium">
                   Shop Name
@@ -498,13 +529,24 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                 <Separator className="my-3 border-2" />
 
                 {/* Final Result - Mobile Optimized */}
-                <div className="bg-green-100 p-3 sm:p-4 rounded-lg">
+                <div className="bg-green-100 p-3 sm:p-4 rounded-lg space-y-2">
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
                     <span className="font-bold text-green-800 text-base sm:text-lg">
                       Final Value (LKR):
                     </span>
                     <span className="font-bold text-green-600 text-lg sm:text-xl">
                       Rs {formatCurrency(previewValues.final_value)}
+                    </span>
+                  </div>
+
+                  {/* Unit Price Display */}
+                  <Separator className="my-2" />
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                    <span className="font-semibold text-green-700 text-sm sm:text-base">
+                      Unit Price (Final Value ÷ Qty):
+                    </span>
+                    <span className="font-semibold text-green-600 text-base sm:text-lg">
+                      Rs {formatCurrency(previewValues.unit_price)} per unit
                     </span>
                   </div>
                 </div>

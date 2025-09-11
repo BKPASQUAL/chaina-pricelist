@@ -12,7 +12,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, Store, Package, DollarSign } from "lucide-react";
+import { Calendar, Store, Package, DollarSign, Tag } from "lucide-react";
 import { Calculation } from "@/types";
 import { formatCurrency } from "@/app/lib/utils";
 
@@ -22,6 +22,8 @@ interface CalculationsTableProps {
 
 interface CalculationWithExchangeRate extends Calculation {
   exchange_rate?: number;
+  item_name?: string;
+  unit_price?: number;
 }
 
 export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
@@ -82,25 +84,35 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                   className="border border-gray-200 shadow-sm"
                 >
                   <CardContent className="p-4 space-y-3">
-                    {/* Header with shop name and date */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2 flex-1">
-                        <Store className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                        <h3 className="font-semibold text-base text-gray-900 truncate">
-                          {calc.shop_name}
-                        </h3>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-500 ml-2">
-                        <Calendar className="h-3 w-3" />
-                        {calc.created_at
-                          ? new Date(calc.created_at).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                              }
-                            )
-                          : "-"}
+                    {/* Header with item name and shop */}
+                    <div className="space-y-2">
+                      {calc.item_name && (
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                          <h3 className="font-semibold text-base text-gray-900 truncate">
+                            {calc.item_name}
+                          </h3>
+                        </div>
+                      )}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2 flex-1">
+                          <Store className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                          <span className="font-medium text-sm text-gray-700 truncate">
+                            {calc.shop_name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-500 ml-2">
+                          <Calendar className="h-3 w-3" />
+                          {calc.created_at
+                            ? new Date(calc.created_at).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )
+                            : "-"}
+                        </div>
                       </div>
                     </div>
 
@@ -136,22 +148,41 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
 
                     <Separator />
 
-                    {/* Final value - prominently displayed */}
-                    <div className="bg-green-50 p-3 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-800">
-                            Final Value
-                          </span>
+                    {/* Final value and unit price - prominently displayed */}
+                    <div className="space-y-2">
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">
+                              Final Value
+                            </span>
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className="bg-green-100 text-green-800 font-bold"
+                          >
+                            Rs {formatCurrency(calc.final_value)}
+                          </Badge>
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className="bg-green-100 text-green-800 font-bold"
-                        >
-                          Rs {formatCurrency(calc.final_value)}
-                        </Badge>
                       </div>
+
+                      {/* Unit Price */}
+                      {calc.unit_price && (
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-blue-800">
+                              Unit Price
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-blue-100 text-blue-800 font-bold text-xs"
+                            >
+                              Rs {formatCurrency(calc.unit_price)} / unit
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Extra details (collapsible on very small screens) */}
@@ -186,6 +217,7 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold">Item Name</TableHead>
                       <TableHead className="font-semibold">Shop Name</TableHead>
                       <TableHead className="text-right font-semibold">
                         Qty
@@ -206,6 +238,9 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                         Final Value
                       </TableHead>
                       <TableHead className="text-right font-semibold">
+                        Unit Price
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
                         Date
                       </TableHead>
                     </TableRow>
@@ -216,6 +251,17 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                         key={calc.id}
                         className="hover:bg-gray-50 transition-colors even:bg-gray-25"
                       >
+                        <TableCell className="font-medium text-gray-900 max-w-[150px]">
+                          <div className="flex items-center gap-2">
+                            <Tag className="h-4 w-4 text-purple-500" />
+                            <span
+                              className="truncate"
+                              title={calc.item_name || "N/A"}
+                            >
+                              {calc.item_name || "-"}
+                            </span>
+                          </div>
+                        </TableCell>
                         <TableCell className="font-medium text-gray-900 max-w-[150px]">
                           <div className="flex items-center gap-2">
                             <Store className="h-4 w-4 text-blue-500" />
@@ -247,6 +293,18 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                             Rs {formatCurrency(calc.final_value)}
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-right">
+                          {calc.unit_price ? (
+                            <Badge
+                              variant="secondary"
+                              className="bg-blue-100 text-blue-800 font-bold text-xs"
+                            >
+                              Rs {formatCurrency(calc.unit_price)}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400 text-sm">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right text-sm text-gray-500">
                           {calc.created_at ? (
                             <div className="flex items-center justify-end gap-1">
@@ -277,12 +335,17 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="font-semibold">Shop</TableHead>
+                      <TableHead className="font-semibold">
+                        Item & Shop
+                      </TableHead>
                       <TableHead className="text-right font-semibold">
                         Details
                       </TableHead>
                       <TableHead className="text-right font-semibold">
                         Final Value
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Unit Price
                       </TableHead>
                       <TableHead className="text-right font-semibold">
                         Date
@@ -295,12 +358,28 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                         key={calc.id}
                         className="hover:bg-gray-50 transition-colors even:bg-gray-25"
                       >
-                        <TableCell className="font-medium max-w-[120px]">
-                          <div className="flex items-center gap-2">
-                            <Store className="h-4 w-4 text-blue-500" />
-                            <span className="truncate" title={calc.shop_name}>
-                              {calc.shop_name}
-                            </span>
+                        <TableCell className="font-medium max-w-[140px]">
+                          <div className="space-y-1">
+                            {calc.item_name && (
+                              <div className="flex items-center gap-2">
+                                <Tag className="h-3 w-3 text-purple-500" />
+                                <span
+                                  className="text-sm font-medium truncate"
+                                  title={calc.item_name}
+                                >
+                                  {calc.item_name}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Store className="h-3 w-3 text-blue-500" />
+                              <span
+                                className="text-xs text-gray-600 truncate"
+                                title={calc.shop_name}
+                              >
+                                {calc.shop_name}
+                              </span>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
@@ -322,6 +401,18 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                           >
                             Rs {formatCurrency(calc.final_value)}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {calc.unit_price ? (
+                            <Badge
+                              variant="secondary"
+                              className="bg-blue-100 text-blue-800 font-bold text-xs"
+                            >
+                              Rs {formatCurrency(calc.unit_price)}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right text-xs text-gray-500">
                           {calc.created_at
