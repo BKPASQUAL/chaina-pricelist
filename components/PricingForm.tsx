@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react"; // ⬅️ added useEffect
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,62 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { CalculationFormData } from "@/types";
+import { Badge } from "@/components/ui/badge";
+import {  AlertCircle, Edit3, Check, X } from "lucide-react";
 import { formatCurrency } from "@/app/lib/utils";
-import { calculationSchema } from "@/app/lib/validations";
+
+// Define form schema for string inputs (what HTML forms return)
+import { z } from "zod";
+
+const calculationFormSchema = z.object({
+  shop_name: z.string().min(1, "Shop name is required"),
+  qty: z
+    .string()
+    .min(1, "Quantity is required")
+    .refine(
+      (val) => !isNaN(Number(val)) && Number(val) > 0,
+      "Quantity must be a positive number"
+    ),
+  rmb_price: z
+    .string()
+    .min(1, "RMB price is required")
+    .refine(
+      (val) => !isNaN(Number(val)) && Number(val) >= 0,
+      "RMB price must be a positive number"
+    ),
+  cmb_rs: z
+    .string()
+    .min(1, "CBM rate is required")
+    .refine(
+      (val) => !isNaN(Number(val)) && Number(val) >= 0,
+      "CBM rate must be a positive number"
+    ),
+  extra_tax: z
+    .string()
+    .refine(
+      (val) => val === "" || (!isNaN(Number(val)) && Number(val) >= 0),
+      "Extra tax must be a positive number"
+    ),
+});
+
+type CalculationFormData = z.infer<typeof calculationFormSchema>;
+
+// Database record type with computed values
+interface CalculationRecord {
+  id?: string;
+  shop_name: string;
+  qty: number;
+  rmb_price: number;
+  cmb_rs: number;
+  extra_tax: number;
+  rmb_amount: number;
+  lkr_amount: number;
+  cbm_amount: number;
+  cbm_lkr: number;
+  final_value: number;
+  exchange_rate: number;
+  created_at: string;
+}
 
 interface PricingFormProps {
   onCalculationSaved: () => void;
@@ -24,8 +77,20 @@ interface PricingFormProps {
 
 export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState(42.1); // Default rate
+  const [rateLoading, setRateLoading] = useState(false);
+  const [rateError, setRateError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Exchange rate editing states
+  const [isEditingRate, setIsEditingRate] = useState(false);
+  const [tempExchangeRate, setTempExchangeRate] = useState("");
+
   const [previewValues, setPreviewValues] = useState({
     rmb_amount: 0,
+    lkr_amount: 0,
+    cbm_amount: 0,
+    cbm_lkr: 0,
     final_value: 0,
   });
 
@@ -36,43 +101,109 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     reset,
     formState: { errors },
   } = useForm<CalculationFormData>({
-    resolver: zodResolver(calculationSchema),
+    resolver: zodResolver(calculationFormSchema),
     defaultValues: {
       shop_name: "",
-      qty: 1,
-      rmb_price: 0,
-      cmb_rs: 0,
-      extra_tax: 0,
+      qty: "",
+      rmb_price: "",
+      cmb_rs: "", // CBM rate as string
+      extra_tax: "",
     },
   });
 
-  // Watch form values for live preview
-  const watchedValues = watch();
+  // Handle manual exchange rate editing
+  const handleEditRate = () => {
+    setTempExchangeRate(exchangeRate.toString());
+    setIsEditingRate(true);
+  };
 
-  // Update preview whenever form values change
+  const handleSaveRate = () => {
+    const newRate = parseFloat(tempExchangeRate);
+    if (!isNaN(newRate) && newRate > 0) {
+      setExchangeRate(newRate);
+      setLastUpdated(new Date());
+      setIsEditingRate(false);
+      setRateError(null);
+    } else {
+      alert("Please enter a valid exchange rate");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingRate(false);
+    setTempExchangeRate("");
+  };
+
+  // Watch form values for live preview
   const qty = watch("qty");
   const rmb_price = watch("rmb_price");
-  const cmb_rs = watch("cmb_rs");
+  const cbm_rate = watch("cmb_rs");
   const extra_tax = watch("extra_tax");
 
+  // Update preview whenever form values change
   useEffect(() => {
-    const rmb_amount = (Number(qty) || 0) * (Number(rmb_price) || 0);
-    const final_value =
-      rmb_amount + (Number(cmb_rs) || 0) + (Number(extra_tax) || 0);
+    // Convert string inputs to numbers, default to 0 if empty or invalid
+    const qtyNum = parseFloat(qty) || 0;
+    const rmbPriceNum = parseFloat(rmb_price) || 0;
+    const cbmRateNum = parseFloat(cbm_rate) || 0;
+    const extraTaxNum = parseFloat(extra_tax) || 0;
 
-    setPreviewValues({ rmb_amount, final_value });
-  }, [qty, rmb_price, cmb_rs, extra_tax]);
+    // Step 1: Calculate RMB Amount (Qty × RMB Price)
+    const rmb_amount = qtyNum * rmbPriceNum;
+
+    // Step 2: Convert RMB to LKR (RMB Amount × Exchange Rate)
+    const lkr_amount = rmb_amount * exchangeRate;
+
+    // Step 3: Calculate CBM amount in LKR (LKR Amount × CBM Rate)
+    const cbm_lkr = lkr_amount * cbmRateNum;
+
+    // Step 4: Calculate final value in LKR (LKR Amount + CBM LKR + Extra Tax)
+    const final_value = lkr_amount + cbm_lkr + extraTaxNum;
+
+    setPreviewValues({
+      rmb_amount,
+      lkr_amount,
+      cbm_amount: cbmRateNum, // Store the CBM rate for display
+      cbm_lkr,
+      final_value,
+    });
+  }, [qty, rmb_price, cbm_rate, extra_tax, exchangeRate]);
 
   const onSubmit = async (data: CalculationFormData) => {
     setIsSubmitting(true);
 
     try {
+      // Convert string form data to numbers for database storage
+      const numericData = {
+        shop_name: data.shop_name,
+        qty: parseFloat(data.qty) || 0,
+        rmb_price: parseFloat(data.rmb_price) || 0,
+        cmb_rs: parseFloat(data.cmb_rs) || 0,
+        extra_tax: parseFloat(data.extra_tax) || 0,
+      };
+
+      // Calculate all values
+      const rmb_amount = numericData.qty * numericData.rmb_price;
+      const lkr_amount = rmb_amount * exchangeRate;
+      const cbm_lkr = lkr_amount * numericData.cmb_rs;
+      const final_value = lkr_amount + cbm_lkr + numericData.extra_tax;
+
+      const calculationData: Omit<CalculationRecord, "id" | "created_at"> = {
+        ...numericData,
+        rmb_amount,
+        lkr_amount,
+        cbm_amount: lkr_amount * numericData.cmb_rs, // CBM amount in LKR
+        cbm_lkr,
+        final_value,
+        exchange_rate: exchangeRate,
+      };
+
       const response = await fetch("/api/calculations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(calculationData),
       });
 
       if (!response.ok) {
@@ -90,145 +221,335 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>China Pricing Calculator</CardTitle>
-        <CardDescription>
-          Calculate total pricing including taxes and additional costs
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="shop_name">Shop Name</Label>
-              <Input
-                id="shop_name"
-                {...register("shop_name")}
-                placeholder="Enter shop name"
-              />
-              {errors.shop_name && (
-                <p className="text-sm text-red-600 mt-1">
-                  {errors.shop_name.message}
-                </p>
+    <div className="w-full px-2 sm:px-1 py-1">
+      <Card className="w-full max-w-4xl mx-auto shadow-sm">
+        <CardHeader className="px-4 sm:px-6 py-2 sm:py-2">
+          <CardTitle className="text-lg sm:text-xl md:text-2xl text-center sm:text-left">
+            China to Sri Lanka Pricing Calculator
+          </CardTitle>
+
+          {/* Exchange Rate Display - Mobile Optimized */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-blue-50 rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <Badge variant="secondary" className="self-start sm:self-center">
+                Exchange Rate
+              </Badge>
+              {isEditingRate ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    value={tempExchangeRate}
+                    onChange={(e) => setTempExchangeRate(e.target.value)}
+                    className="w-20 sm:w-24 h-8 text-sm"
+                    placeholder="Rate"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSaveRate}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm sm:text-base">
+                    1 CNY = {exchangeRate.toFixed(4)} LKR
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditRate}
+                    className="h-6 w-6 p-0"
+                    title="Edit exchange rate"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              {lastUpdated && (
+                <span className="text-xs sm:text-sm text-gray-500">
+                  Updated: {lastUpdated.toLocaleTimeString()}
+                </span>
               )}
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="qty">Quantity</Label>
-                <Input
-                  id="qty"
-                  type="number"
-                  min="1"
-                  {...register("qty", { valueAsNumber: true })}
-                  placeholder="Enter quantity"
-                />
-                {errors.qty && (
-                  <p className="text-sm text-red-600 mt-1">
-                    {errors.qty.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="rmb_price">RMB Price</Label>
-                <Input
-                  id="rmb_price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...register("rmb_price", { valueAsNumber: true })}
-                  placeholder="Enter RMB price"
-                />
-                {errors.rmb_price && (
-                  <p className="text-sm text-red-600 mt-1">
-                    {errors.rmb_price.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="cmb_rs">CMB Rs</Label>
-                <Input
-                  id="cmb_rs"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...register("cmb_rs", { valueAsNumber: true })}
-                  placeholder="Enter CMB Rs"
-                />
-                {errors.cmb_rs && (
-                  <p className="text-sm text-red-600 mt-1">
-                    {errors.cmb_rs.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="extra_tax">Extra Tax</Label>
-                <Input
-                  id="extra_tax"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...register("extra_tax", { valueAsNumber: true })}
-                  placeholder="Enter extra tax"
-                />
-                {errors.extra_tax && (
-                  <p className="text-sm text-red-600 mt-1">
-                    {errors.extra_tax.message}
-                  </p>
-                )}
-              </div>
-            </div>
+            {/* <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={rateLoading}
+              className="flex items-center gap-1 text-xs sm:text-sm self-start sm:self-center"
+            >
+              <RefreshCw
+                className={`h-3 w-3 ${rateLoading ? "animate-spin" : ""}`}
+              />
+              <span className="hidden sm:inline">Refresh</span>
+              <span className="sm:hidden">↻</span>
+            </Button> */}
           </div>
 
-          <Separator />
+          {rateError && (
+            <div className="flex items-start gap-2 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-sm">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>{rateError}</span>
+            </div>
+          )}
+        </CardHeader>
 
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Calculation Preview</h3>
-
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-              <div className="flex justify-between">
-                <span>RMB Amount (Qty × Price):</span>
-                <span className="font-medium">
-                  ¥{formatCurrency(previewValues.rmb_amount)}
-                </span>
+        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4 sm:space-y-6"
+          >
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="shop_name" className="text-sm font-medium">
+                  Shop Name
+                </Label>
+                <Input
+                  id="shop_name"
+                  {...register("shop_name")}
+                  placeholder="Enter shop name"
+                  className="mt-1"
+                />
+                {errors.shop_name && (
+                  <p className="text-xs sm:text-sm text-red-600 mt-1">
+                    {errors.shop_name.message}
+                  </p>
+                )}
               </div>
 
-              <div className="flex justify-between">
-                <span>CMB Rs:</span>
-                <span className="font-medium">
-                  Rs {formatCurrency(Number(watchedValues.cmb_rs) || 0)}
-                </span>
+              {/* Form Grid - Responsive */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="qty" className="text-sm font-medium">
+                    Quantity
+                  </Label>
+                  <Input
+                    id="qty"
+                    type="number"
+                    step="0.01"
+                    {...register("qty")}
+                    placeholder="Enter quantity"
+                    className="mt-1"
+                  />
+                  {errors.qty && (
+                    <p className="text-xs sm:text-sm text-red-600 mt-1">
+                      {errors.qty.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="rmb_price" className="text-sm font-medium">
+                    RMB Price (per unit)
+                  </Label>
+                  <Input
+                    id="rmb_price"
+                    type="number"
+                    step="0.01"
+                    {...register("rmb_price")}
+                    placeholder="Enter RMB price"
+                    className="mt-1"
+                  />
+                  {errors.rmb_price && (
+                    <p className="text-xs sm:text-sm text-red-600 mt-1">
+                      {errors.rmb_price.message}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="flex justify-between">
-                <span>Extra Tax:</span>
-                <span className="font-medium">
-                  ¥{formatCurrency(Number(watchedValues.extra_tax) || 0)}
-                </span>
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="cmb_rs" className="text-sm font-medium">
+                    CBM Rate
+                  </Label>
+                  <Input
+                    id="cmb_rs"
+                    type="number"
+                    step="0.01"
+                    {...register("cmb_rs")}
+                    placeholder="Enter CBM rate (e.g., 15)"
+                    className="mt-1"
+                  />
+                  {errors.cmb_rs && (
+                    <p className="text-xs sm:text-sm text-red-600 mt-1">
+                      {errors.cmb_rs.message}
+                    </p>
+                  )}
+                </div>
 
-              <Separator />
-
-              <div className="flex justify-between text-lg font-bold">
-                <span>Final Value:</span>
-                <span className="text-green-600">
-                  ¥{formatCurrency(previewValues.final_value)}
-                </span>
+                <div>
+                  <Label htmlFor="extra_tax" className="text-sm font-medium">
+                    Extra Tax (LKR)
+                  </Label>
+                  <Input
+                    id="extra_tax"
+                    type="number"
+                    step="0.01"
+                    {...register("extra_tax")}
+                    placeholder="Enter extra tax in LKR"
+                    className="mt-1"
+                  />
+                  {errors.extra_tax && (
+                    <p className="text-xs sm:text-sm text-red-600 mt-1">
+                      {errors.extra_tax.message}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save Calculation"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <Separator />
+
+            {/* Calculation Breakdown - Mobile Optimized */}
+            <div className="space-y-3">
+              <h3 className="text-base sm:text-lg font-semibold">
+                Calculation Breakdown
+              </h3>
+
+              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg space-y-3">
+                {/* Step 1 */}
+                <div className="space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <span className="font-medium text-blue-700 text-sm sm:text-base">
+                      Step 1: RMB Amount
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="self-start sm:self-center text-xs"
+                    >
+                      Qty × RMB Price
+                    </Badge>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-sm sm:text-base text-gray-600">
+                      ({parseFloat(qty) || 0} × ¥
+                      {(parseFloat(rmb_price) || 0).toFixed(2)})
+                    </span>
+                    <span className="font-medium text-sm sm:text-base">
+                      ¥{formatCurrency(previewValues.rmb_amount)}
+                    </span>
+                  </div>
+                </div>
+
+                <Separator className="my-2" />
+
+                {/* Step 2 */}
+                <div className="space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <span className="font-medium text-green-700 text-sm sm:text-base">
+                      Step 2: Convert to LKR
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="self-start sm:self-center text-xs"
+                    >
+                      RMB × Exchange Rate
+                    </Badge>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-sm sm:text-base text-gray-600 break-words">
+                      (¥{formatCurrency(previewValues.rmb_amount)} ×{" "}
+                      {exchangeRate.toFixed(4)})
+                    </span>
+                    <span className="font-medium text-sm sm:text-base">
+                      Rs {formatCurrency(previewValues.lkr_amount)}
+                    </span>
+                  </div>
+                </div>
+
+                <Separator className="my-2" />
+
+                {/* Step 3 */}
+                <div className="space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <span className="font-medium text-purple-700 text-sm sm:text-base">
+                      Step 3: CBM Calculation
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="self-start sm:self-center text-xs"
+                    >
+                      LKR Amount × CBM Rate
+                    </Badge>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-sm sm:text-base text-gray-600 break-words">
+                      (Rs {formatCurrency(previewValues.lkr_amount)} ×{" "}
+                      {parseFloat(cbm_rate) || 0})
+                    </span>
+                    <span className="font-medium text-sm sm:text-base">
+                      Rs {formatCurrency(previewValues.cbm_lkr)}
+                    </span>
+                  </div>
+                </div>
+
+                <Separator className="my-2" />
+
+                {/* Step 4 */}
+                <div className="space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <span className="font-medium text-orange-700 text-sm sm:text-base">
+                      Step 4: Extra Tax
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="self-start sm:self-center text-xs"
+                    >
+                      Additional LKR
+                    </Badge>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-sm sm:text-base text-gray-600">
+                      Extra Tax
+                    </span>
+                    <span className="font-medium text-sm sm:text-base">
+                      Rs {formatCurrency(parseFloat(extra_tax) || 0)}
+                    </span>
+                  </div>
+                </div>
+
+                <Separator className="my-3 border-2" />
+
+                {/* Final Result - Mobile Optimized */}
+                <div className="bg-green-100 p-3 sm:p-4 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                    <span className="font-bold text-green-800 text-base sm:text-lg">
+                      Final Value (LKR):
+                    </span>
+                    <span className="font-bold text-green-600 text-lg sm:text-xl">
+                      Rs {formatCurrency(previewValues.final_value)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full py-3 text-base font-medium"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Save Calculation"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
