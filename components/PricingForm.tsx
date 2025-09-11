@@ -223,7 +223,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   return (
     <div className="w-full px-2 sm:px-1 py-1">
       <Card className="w-full max-w-4xl mx-auto shadow-sm">
-        <CardHeader className="px-4 sm:px-6 py-2 sm:py-2">
+        <CardHeader className="px-4 sm:px-6 ">
           <CardTitle className="text-lg sm:text-xl md:text-2xl text-center sm:text-left">
             China to Sri Lanka Pricing Calculator
           </CardTitle>
@@ -280,11 +280,11 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                   </Button>
                 </div>
               )}
-              {lastUpdated && (
+              {/* {lastUpdated && (
                 <span className="text-xs sm:text-sm text-gray-500">
                   Updated: {lastUpdated.toLocaleTimeString()}
                 </span>
-              )}
+              )} */}
             </div>
             {/* <Button
               type="button"
@@ -301,15 +301,15 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
             </Button> */}
           </div>
 
-          {rateError && (
+          {/* {rateError && (
             <div className="flex items-start gap-2 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-sm">
               <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>{rateError}</span>
             </div>
-          )}
+          )} */}
         </CardHeader>
 
-        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+        <CardContent className="px-4 sm:px-6 pb-2 sm:pb-2">
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-4 sm:space-y-6"
@@ -333,7 +333,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
               </div>
 
               {/* Form Grid - Responsive */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="qty" className="text-sm font-medium">
                     Quantity
@@ -373,7 +373,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="cmb_rs" className="text-sm font-medium">
                     CBM Rate
@@ -425,8 +425,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
               <div className="bg-gray-50 p-3 sm:p-4 rounded-lg space-y-3">
                 {/* Step 1 */}
                 <div className="space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                    <span className="font-medium text-blue-700 text-sm sm:text-base">
+                  <div className="flex  justify-between sm:items-center gap-2">
+                    <span className="font-medium text-blue-700 text-xs  sm:text-base">
                       Step 1: RMB Amount
                     </span>
                     <Badge
@@ -436,12 +436,12 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                       Qty × RMB Price
                     </Badge>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-sm sm:text-base text-gray-600">
+                  <div className="flex  justify-between gap-1">
+                    <span className="text-xs  sm:text-base text-gray-600">
                       ({parseFloat(qty) || 0} × ¥
                       {(parseFloat(rmb_price) || 0).toFixed(2)})
                     </span>
-                    <span className="font-medium text-sm sm:text-base">
+                    <span className="font-medium text-xs  sm:text-base">
                       ¥{formatCurrency(previewValues.rmb_amount)}
                     </span>
                   </div>
@@ -451,8 +451,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
 
                 {/* Step 2 */}
                 <div className="space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                    <span className="font-medium text-green-700 text-sm sm:text-base">
+                  <div className="flex  justify-between sm:items-center gap-2">
+                    <span className="font-medium text-green-700 text-xs  sm:text-base">
                       Step 2: Convert to LKR
                     </span>
                     <Badge
@@ -462,12 +462,12 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                       RMB × Exchange Rate
                     </Badge>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-sm sm:text-base text-gray-600 break-words">
+                  <div className="flex justify-between gap-1">
+                    <span className="text-xs  sm:text-base text-gray-600 break-words">
                       (¥{formatCurrency(previewValues.rmb_amount)} ×{" "}
                       {exchangeRate.toFixed(4)})
                     </span>
-                    <span className="font-medium text-sm sm:text-base">
+                    <span className="font-medium text-xs  sm:text-base">
                       Rs {formatCurrency(previewValues.lkr_amount)}
                     </span>
                   </div>
@@ -477,8 +477,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
 
                 {/* Step 3 */}
                 <div className="space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                    <span className="font-medium text-purple-700 text-sm sm:text-base">
+                  <div className="flex justify-between sm:items-center gap-2">
+                    <span className="font-medium text-purple-700 text-xs  sm:text-base">
                       Step 3: CBM Calculation
                     </span>
                     <Badge
@@ -488,12 +488,12 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                       LKR Amount × CBM Rate
                     </Badge>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-sm sm:text-base text-gray-600 break-words">
+                  <div className="flex justify-between gap-1">
+                    <span className="text-xs  sm:text-base text-gray-600 break-words">
                       (Rs {formatCurrency(previewValues.lkr_amount)} ×{" "}
                       {parseFloat(cbm_rate) || 0})
                     </span>
-                    <span className="font-medium text-sm sm:text-base">
+                    <span className="font-medium text-xs  sm:text-base">
                       Rs {formatCurrency(previewValues.cbm_lkr)}
                     </span>
                   </div>
@@ -503,8 +503,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
 
                 {/* Step 4 */}
                 <div className="space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                    <span className="font-medium text-orange-700 text-sm sm:text-base">
+                  <div className="flex justify-between sm:items-center gap-2">
+                    <span className="font-medium text-orange-700 text-xs sm:text-base">
                       Step 4: Extra Tax
                     </span>
                     <Badge
@@ -514,11 +514,11 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                       Additional LKR
                     </Badge>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-sm sm:text-base text-gray-600">
+                  <div className="flex justify-between gap-1">
+                    <span className="text-xs  sm:text-base text-gray-600">
                       Extra Tax
                     </span>
-                    <span className="font-medium text-sm sm:text-base">
+                    <span className="font-medium text-xs  sm:text-base">
                       Rs {formatCurrency(parseFloat(extra_tax) || 0)}
                     </span>
                   </div>

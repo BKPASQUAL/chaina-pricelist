@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,10 +8,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calculation } from '@/types';
-import { formatCurrency } from '@/app/lib/utils';
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Calendar, Store, Package, DollarSign } from "lucide-react";
+import { Calculation } from "@/types";
+import { formatCurrency } from "@/app/lib/utils";
 
 interface CalculationsTableProps {
   refreshTrigger: number;
@@ -27,13 +36,13 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
 
   const fetchCalculations = async () => {
     try {
-      const response = await fetch('/api/calculations');
+      const response = await fetch("/api/calculations");
       if (response.ok) {
         const data = await response.json();
         setCalculations(data);
       }
     } catch (error) {
-      console.error('Error fetching calculations:', error);
+      console.error("Error fetching calculations:", error);
     } finally {
       setIsLoading(false);
     }
@@ -41,62 +50,310 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="w-full">
         <CardContent className="p-6">
-          <div className="flex justify-center">Loading calculations...</div>
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <span className="ml-3 text-gray-600">Loading calculations...</span>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Saved Calculations</CardTitle>
-        <CardDescription>
-          History of all pricing calculations
+    <Card className="w-full">
+      {/* <CardHeader className="px-4 sm:px-6 py-4">
+        <CardTitle className="text-lg sm:text-xl text-center sm:text-left">
+          Saved Calculations
+        </CardTitle>
+        <CardDescription className="text-center sm:text-left">
+          History of all pricing calculations ({calculations.length} records)
         </CardDescription>
-      </CardHeader>
-      <CardContent>
+      </CardHeader> */}
+      <CardContent className="px-2 sm:px-6 pb-6">
         {calculations.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No calculations found. Create your first calculation above.
+          <div className="text-center py-2 text-gray-500">
+            <Package className="mx-auto h-16 w-16 mb-4 text-gray-300" />
+            <p className="text-lg font-medium mb-2">No calculations found</p>
+            <p className="text-sm">
+              Create your first calculation above to get started.
+            </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Shop Name</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">RMB Price</TableHead>
-                  <TableHead className="text-right">RMB Amount</TableHead>
-                  <TableHead className="text-right">CMB Rs</TableHead>
-                  <TableHead className="text-right">Extra Tax</TableHead>
-                  <TableHead className="text-right">Final Value</TableHead>
-                  <TableHead className="text-right">Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {calculations.map((calc) => (
-                  <TableRow key={calc.id}>
-                    <TableCell className="font-medium">{calc.shop_name}</TableCell>
-                    <TableCell className="text-right">{calc.qty}</TableCell>
-                    <TableCell className="text-right">¥{formatCurrency(calc.rmb_price)}</TableCell>
-                    <TableCell className="text-right">¥{formatCurrency(calc.rmb_amount)}</TableCell>
-                    <TableCell className="text-right">Rs {formatCurrency(calc.cmb_rs)}</TableCell>
-                    <TableCell className="text-right">¥{formatCurrency(calc.extra_tax)}</TableCell>
-                    <TableCell className="text-right font-bold text-green-600">
-                      ¥{formatCurrency(calc.final_value)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {calc.created_at ? new Date(calc.created_at).toLocaleDateString() : '-'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <>
+            {/* Mobile Card Layout - Hidden on larger screens */}
+            <div className="block lg:hidden space-y-4">
+              {calculations.map((calc, index) => (
+                <Card
+                  key={calc.id}
+                  className="border border-gray-200 shadow-sm"
+                >
+                  <CardContent className="p-4 space-y-3">
+                    {/* Header with shop name and date */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2 flex-1">
+                        <Store className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        <h3 className="font-semibold text-base text-gray-900 truncate">
+                          {calc.shop_name}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-gray-500 ml-2">
+                        <Calendar className="h-3 w-3" />
+                        {calc.created_at
+                          ? new Date(calc.created_at).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                              }
+                            )
+                          : "-"}
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Key metrics in grid */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="space-y-1">
+                        <span className="text-gray-500 text-xs">Quantity</span>
+                        <p className="font-medium">{calc.qty}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-gray-500 text-xs">RMB Price</span>
+                        <p className="font-medium">
+                          ¥{formatCurrency(calc.rmb_price)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-gray-500 text-xs">
+                          RMB Amount
+                        </span>
+                        <p className="font-medium">
+                          ¥{formatCurrency(calc.rmb_amount)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-gray-500 text-xs">CBM Rate</span>
+                        <p className="font-medium">
+                          {formatCurrency(calc.cmb_rs)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Final value - prominently displayed */}
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            Final Value
+                          </span>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-100 text-green-800 font-bold"
+                        >
+                          Rs {formatCurrency(calc.final_value)}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Extra details (collapsible on very small screens) */}
+                    <details className="group">
+                      <summary className="cursor-pointer text-xs text-blue-600 font-medium list-none">
+                        <span className="group-open:hidden">Show details</span>
+                        <span className="hidden group-open:inline">
+                          Hide details
+                        </span>
+                      </summary>
+                      <div className="mt-2 pt-2 border-t space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Extra Tax:</span>
+                          <span>Rs {formatCurrency(calc.extra_tax)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Exchange Rate:</span>
+                          <span>
+                            {(calc as any).exchange_rate?.toFixed(4) || "N/A"}{" "}
+                            LKR
+                          </span>
+                        </div>
+                      </div>
+                    </details>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop Table Layout - Hidden on mobile */}
+            <div className="hidden lg:block">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold">Shop Name</TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Qty
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        RMB Price
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        RMB Amount
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        CBM Rate
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Extra Tax
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Final Value
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Date
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {calculations.map((calc, index) => (
+                      <TableRow
+                        key={calc.id}
+                        className={`hover:bg-gray-50 transition-colors ${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-25"
+                        }`}
+                      >
+                        <TableCell className="font-medium text-gray-900 max-w-[150px]">
+                          <div className="flex items-center gap-2">
+                            <Store className="h-4 w-4 text-blue-500" />
+                            <span className="truncate" title={calc.shop_name}>
+                              {calc.shop_name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {calc.qty}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ¥{formatCurrency(calc.rmb_price)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ¥{formatCurrency(calc.rmb_amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(calc.cmb_rs)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          Rs {formatCurrency(calc.extra_tax)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge
+                            variant="secondary"
+                            className="bg-green-100 text-green-800 font-bold"
+                          >
+                            Rs {formatCurrency(calc.final_value)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-sm text-gray-500">
+                          {calc.created_at ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(calc.created_at).toLocaleDateString(
+                                "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )}
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Tablet Layout - Visible only on medium screens */}
+            <div className="hidden md:block lg:hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold">Shop</TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Details
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Final Value
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        Date
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {calculations.map((calc, index) => (
+                      <TableRow
+                        key={calc.id}
+                        className={`hover:bg-gray-50 transition-colors ${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-25"
+                        }`}
+                      >
+                        <TableCell className="font-medium max-w-[120px]">
+                          <div className="flex items-center gap-2">
+                            <Store className="h-4 w-4 text-blue-500" />
+                            <span className="truncate" title={calc.shop_name}>
+                              {calc.shop_name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="text-xs space-y-1">
+                            <div>
+                              Qty: {calc.qty} × ¥
+                              {formatCurrency(calc.rmb_price)}
+                            </div>
+                            <div className="text-gray-500">
+                              CBM: {formatCurrency(calc.cmb_rs)} | Tax: Rs{" "}
+                              {formatCurrency(calc.extra_tax)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge
+                            variant="secondary"
+                            className="bg-green-100 text-green-800 font-bold"
+                          >
+                            Rs {formatCurrency(calc.final_value)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-xs text-gray-500">
+                          {calc.created_at
+                            ? new Date(calc.created_at).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )
+                            : "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

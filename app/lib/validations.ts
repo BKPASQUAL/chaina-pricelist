@@ -21,4 +21,5 @@ export interface CalculationRecord extends CalculationFormData {
   final_value: number;
   exchange_rate: number;
   created_at: string;
+  
 }
