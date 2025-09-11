@@ -9,13 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, Store, Package, DollarSign } from "lucide-react";
@@ -26,8 +20,14 @@ interface CalculationsTableProps {
   refreshTrigger: number;
 }
 
+interface CalculationWithExchangeRate extends Calculation {
+  exchange_rate?: number;
+}
+
 export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
-  const [calculations, setCalculations] = useState<Calculation[]>([]);
+  const [calculations, setCalculations] = useState<
+    CalculationWithExchangeRate[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -63,14 +63,6 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
 
   return (
     <Card className="w-full">
-      {/* <CardHeader className="px-4 sm:px-6 py-4">
-        <CardTitle className="text-lg sm:text-xl text-center sm:text-left">
-          Saved Calculations
-        </CardTitle>
-        <CardDescription className="text-center sm:text-left">
-          History of all pricing calculations ({calculations.length} records)
-        </CardDescription>
-      </CardHeader> */}
       <CardContent className="px-2 sm:px-6 pb-6">
         {calculations.length === 0 ? (
           <div className="text-center py-2 text-gray-500">
@@ -84,7 +76,7 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
           <>
             {/* Mobile Card Layout - Hidden on larger screens */}
             <div className="block lg:hidden space-y-4">
-              {calculations.map((calc, index) => (
+              {calculations.map((calc) => (
                 <Card
                   key={calc.id}
                   className="border border-gray-200 shadow-sm"
@@ -178,8 +170,7 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                         <div className="flex justify-between">
                           <span className="text-gray-500">Exchange Rate:</span>
                           <span>
-                            {(calc as any).exchange_rate?.toFixed(4) || "N/A"}{" "}
-                            LKR
+                            {calc.exchange_rate?.toFixed(4) || "N/A"} LKR
                           </span>
                         </div>
                       </div>
@@ -220,12 +211,10 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {calculations.map((calc, index) => (
+                    {calculations.map((calc) => (
                       <TableRow
                         key={calc.id}
-                        className={`hover:bg-gray-50 transition-colors ${
-                          index % 2 === 0 ? "bg-white" : "bg-gray-25"
-                        }`}
+                        className="hover:bg-gray-50 transition-colors even:bg-gray-25"
                       >
                         <TableCell className="font-medium text-gray-900 max-w-[150px]">
                           <div className="flex items-center gap-2">
@@ -301,12 +290,10 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {calculations.map((calc, index) => (
+                    {calculations.map((calc) => (
                       <TableRow
                         key={calc.id}
-                        className={`hover:bg-gray-50 transition-colors ${
-                          index % 2 === 0 ? "bg-white" : "bg-gray-25"
-                        }`}
+                        className="hover:bg-gray-50 transition-colors even:bg-gray-25"
                       >
                         <TableCell className="font-medium max-w-[120px]">
                           <div className="flex items-center gap-2">

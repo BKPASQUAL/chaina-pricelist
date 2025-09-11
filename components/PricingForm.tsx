@@ -6,16 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import {  AlertCircle, Edit3, Check, X } from "lucide-react";
+import { Edit3, Check, X } from "lucide-react";
 import { formatCurrency } from "@/app/lib/utils";
 
 // Define form schema for string inputs (what HTML forms return)
@@ -78,8 +72,6 @@ interface PricingFormProps {
 export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [exchangeRate, setExchangeRate] = useState(42.1); // Default rate
-  const [rateLoading, setRateLoading] = useState(false);
-  const [rateError, setRateError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Exchange rate editing states
@@ -123,7 +115,6 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
       setExchangeRate(newRate);
       setLastUpdated(new Date());
       setIsEditingRate(false);
-      setRateError(null);
     } else {
       alert("Please enter a valid exchange rate");
     }
@@ -280,33 +271,13 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                   </Button>
                 </div>
               )}
-              {/* {lastUpdated && (
+              {lastUpdated && (
                 <span className="text-xs sm:text-sm text-gray-500">
                   Updated: {lastUpdated.toLocaleTimeString()}
                 </span>
-              )} */}
+              )}
             </div>
-            {/* <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={rateLoading}
-              className="flex items-center gap-1 text-xs sm:text-sm self-start sm:self-center"
-            >
-              <RefreshCw
-                className={`h-3 w-3 ${rateLoading ? "animate-spin" : ""}`}
-              />
-              <span className="hidden sm:inline">Refresh</span>
-              <span className="sm:hidden">↻</span>
-            </Button> */}
           </div>
-
-          {/* {rateError && (
-            <div className="flex items-start gap-2 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-sm">
-              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <span>{rateError}</span>
-            </div>
-          )} */}
         </CardHeader>
 
         <CardContent className="px-4 sm:px-6 pb-2 sm:pb-2">
