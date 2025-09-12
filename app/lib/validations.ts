@@ -6,7 +6,8 @@ export const calculationSchema = z.object({
   shop_name: z.string().min(1, "Shop name is required"),
   qty: z.number().positive("Quantity must be positive"),
   rmb_price: z.number().min(0, "RMB price must be non-negative"),
-  cmb_rs: z.number().min(0, "CBM rate must be non-negative"),
+  cmb_rate: z.number().min(0, "CBM rate must be non-negative"),
+  cmb_amount: z.number().min(0, "CBM amount must be non-negative"),
   extra_tax: z.number().min(0, "Extra tax must be non-negative"),
 });
 
@@ -17,9 +18,9 @@ export interface CalculationRecord extends CalculationFormData {
   id?: string;
   rmb_amount: number;
   lkr_amount: number;
-  cbm_amount: number;
-  cbm_lkr: number;
+  cmb_value: number; // Changed from cbm_amount and cbm_lkr to cmb_value
   final_value: number;
+  unit_price: number;
   exchange_rate: number;
   created_at: string;
 }

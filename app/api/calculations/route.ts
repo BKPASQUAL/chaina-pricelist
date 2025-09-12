@@ -6,29 +6,26 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate input - make sure to update your validation schema to include item_name
+    // Validate input
     const validatedData = calculationSchema.parse(body);
 
     // Get exchange rate from body or fetch current rate
     const exchangeRate = body.exchange_rate || 42.1; // Default fallback
 
-    // Calculate values following the new flow:
+    // Calculate values following the NEW calculation flow:
     // Step 1: Qty × RMB Price = RMB Amount
     const rmb_amount = validatedData.qty * validatedData.rmb_price;
 
     // Step 2: RMB Amount × Exchange Rate = LKR Amount
     const lkr_amount = rmb_amount * exchangeRate;
 
-    // Step 3: LKR Amount × CBM Rate = CBM Amount in LKR
-    const cbm_amount = lkr_amount * validatedData.cmb_rs;
+    // Step 3: CBM Rate × CBM Amount = CMB Value (NEW FORMULA)
+    const cmb_value = validatedData.cmb_rate * validatedData.cmb_amount;
 
-    // Step 4: CBM Amount (already in LKR) + Extra Tax = Additional costs
-    const cbm_lkr = cbm_amount; // CBM amount is already in LKR
+    // Step 4: Final Value = LKR Amount + CMB Value + Extra Tax (NEW FORMULA)
+    const final_value = lkr_amount + cmb_value + validatedData.extra_tax;
 
-    // Step 5: Final Value = LKR Amount + CBM LKR + Extra Tax
-    const final_value = lkr_amount + cbm_lkr + validatedData.extra_tax;
-
-    // Step 6: Unit Price = Final Value ÷ Quantity
+    // Step 5: Unit Price = Final Value ÷ Quantity
     const unit_price =
       validatedData.qty > 0 ? final_value / validatedData.qty : 0;
 
@@ -36,8 +33,7 @@ export async function POST(request: NextRequest) {
       ...validatedData,
       rmb_amount,
       lkr_amount,
-      cbm_amount,
-      cbm_lkr,
+      cmb_value, // Store the calculated CMB value
       final_value,
       unit_price,
       exchange_rate: exchangeRate,

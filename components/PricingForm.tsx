@@ -32,12 +32,19 @@ const calculationFormSchema = z.object({
       (val) => !isNaN(Number(val)) && Number(val) >= 0,
       "RMB price must be a positive number"
     ),
-  cmb_rs: z
+  cmb_rate: z
     .string()
     .min(1, "CBM rate is required")
     .refine(
       (val) => !isNaN(Number(val)) && Number(val) >= 0,
       "CBM rate must be a positive number"
+    ),
+  cmb_amount: z
+    .string()
+    .min(1, "CBM amount is required")
+    .refine(
+      (val) => !isNaN(Number(val)) && Number(val) >= 0,
+      "CBM amount must be a positive number"
     ),
   extra_tax: z
     .string()
@@ -56,12 +63,12 @@ interface CalculationRecord {
   shop_name: string;
   qty: number;
   rmb_price: number;
-  cmb_rs: number;
+  cmb_rate: number;
+  cmb_amount: number;
   extra_tax: number;
   rmb_amount: number;
   lkr_amount: number;
-  cbm_amount: number;
-  cbm_lkr: number;
+  cmb_value: number;
   final_value: number;
   unit_price: number;
   exchange_rate: number;
@@ -84,8 +91,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   const [previewValues, setPreviewValues] = useState({
     rmb_amount: 0,
     lkr_amount: 0,
-    cbm_amount: 0,
-    cbm_lkr: 0,
+    cmb_value: 0,
     final_value: 0,
     unit_price: 0,
   });
@@ -103,7 +109,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
       shop_name: "",
       qty: "",
       rmb_price: "",
-      cmb_rs: "", // CBM rate as string
+      cmb_rate: "",
+      cmb_amount: "",
       extra_tax: "",
     },
   });
@@ -133,7 +140,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   // Watch form values for live preview
   const qty = watch("qty");
   const rmb_price = watch("rmb_price");
-  const cbm_rate = watch("cmb_rs");
+  const cmb_rate = watch("cmb_rate");
+  const cmb_amount = watch("cmb_amount");
   const extra_tax = watch("extra_tax");
 
   // Update preview whenever form values change
@@ -141,7 +149,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     // Convert string inputs to numbers, default to 0 if empty or invalid
     const qtyNum = parseFloat(qty) || 0;
     const rmbPriceNum = parseFloat(rmb_price) || 0;
-    const cbmRateNum = parseFloat(cbm_rate) || 0;
+    const cmbRateNum = parseFloat(cmb_rate) || 0;
+    const cmbAmountNum = parseFloat(cmb_amount) || 0;
     const extraTaxNum = parseFloat(extra_tax) || 0;
 
     // Step 1: Calculate RMB Amount (Qty × RMB Price)
@@ -150,11 +159,11 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     // Step 2: Convert RMB to LKR (RMB Amount × Exchange Rate)
     const lkr_amount = rmb_amount * exchangeRate;
 
-    // Step 3: Calculate CBM amount in LKR (LKR Amount × CBM Rate)
-    const cbm_lkr = lkr_amount * cbmRateNum;
+    // Step 3: Calculate CMB Value (CMB Rate × CMB Amount)
+    const cmb_value = cmbRateNum * cmbAmountNum;
 
-    // Step 4: Calculate final value in LKR (LKR Amount + CBM LKR + Extra Tax)
-    const final_value = lkr_amount + cbm_lkr + extraTaxNum;
+    // Step 4: Calculate final value in LKR (LKR Amount + CMB Value + Extra Tax)
+    const final_value = lkr_amount + cmb_value + extraTaxNum;
 
     // Step 5: Calculate unit price (Final Value ÷ Quantity)
     const unit_price = qtyNum > 0 ? final_value / qtyNum : 0;
@@ -162,12 +171,11 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     setPreviewValues({
       rmb_amount,
       lkr_amount,
-      cbm_amount: cbmRateNum, // Store the CBM rate for display
-      cbm_lkr,
+      cmb_value,
       final_value,
       unit_price,
     });
-  }, [qty, rmb_price, cbm_rate, extra_tax, exchangeRate]);
+  }, [qty, rmb_price, cmb_rate, cmb_amount, extra_tax, exchangeRate]);
 
   const onSubmit = async (data: CalculationFormData) => {
     setIsSubmitting(true);
@@ -179,15 +187,16 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
         shop_name: data.shop_name,
         qty: parseFloat(data.qty) || 0,
         rmb_price: parseFloat(data.rmb_price) || 0,
-        cmb_rs: parseFloat(data.cmb_rs) || 0,
+        cmb_rate: parseFloat(data.cmb_rate) || 0,
+        cmb_amount: parseFloat(data.cmb_amount) || 0,
         extra_tax: parseFloat(data.extra_tax) || 0,
       };
 
-      // Calculate all values
+      // Calculate all values using new formula
       const rmb_amount = numericData.qty * numericData.rmb_price;
       const lkr_amount = rmb_amount * exchangeRate;
-      const cbm_lkr = lkr_amount * numericData.cmb_rs;
-      const final_value = lkr_amount + cbm_lkr + numericData.extra_tax;
+      const cmb_value = numericData.cmb_rate * numericData.cmb_amount;
+      const final_value = lkr_amount + cmb_value + numericData.extra_tax;
       const unit_price =
         numericData.qty > 0 ? final_value / numericData.qty : 0;
 
@@ -195,8 +204,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
         ...numericData,
         rmb_amount,
         lkr_amount,
-        cbm_amount: lkr_amount * numericData.cmb_rs, // CBM amount in LKR
-        cbm_lkr,
+        cmb_value,
         final_value,
         unit_price,
         exchange_rate: exchangeRate,
@@ -377,42 +385,61 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
 
               <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="cmb_rs" className="text-sm font-medium">
+                  <Label htmlFor="cmb_rate" className="text-sm font-medium">
                     CBM Rate
                   </Label>
                   <Input
-                    id="cmb_rs"
+                    id="cmb_rate"
                     type="number"
                     step="0.01"
-                    {...register("cmb_rs")}
-                    placeholder="Enter CBM rate (e.g., 15)"
+                    {...register("cmb_rate")}
+                    placeholder="Enter CBM rate"
                     className="mt-1"
                   />
-                  {errors.cmb_rs && (
+                  {errors.cmb_rate && (
                     <p className="text-xs sm:text-sm text-red-600 mt-1">
-                      {errors.cmb_rs.message}
+                      {errors.cmb_rate.message}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="extra_tax" className="text-sm font-medium">
-                    Extra Tax (LKR)
+                  <Label htmlFor="cmb_amount" className="text-sm font-medium">
+                    CBM Amount
                   </Label>
                   <Input
-                    id="extra_tax"
+                    id="cmb_amount"
                     type="number"
                     step="0.01"
-                    {...register("extra_tax")}
-                    placeholder="Enter extra tax in LKR"
+                    {...register("cmb_amount")}
+                    placeholder="Enter CBM amount"
                     className="mt-1"
                   />
-                  {errors.extra_tax && (
+                  {errors.cmb_amount && (
                     <p className="text-xs sm:text-sm text-red-600 mt-1">
-                      {errors.extra_tax.message}
+                      {errors.cmb_amount.message}
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="extra_tax" className="text-sm font-medium">
+                  Extra Tax (LKR)
+                </Label>
+                <Input
+                  id="extra_tax"
+                  type="number"
+                  step="0.01"
+                  {...register("extra_tax")}
+                  placeholder="Enter extra tax in LKR"
+                  className="mt-1"
+                />
+                {errors.extra_tax && (
+                  <p className="text-xs sm:text-sm text-red-600 mt-1">
+                    {errors.extra_tax.message}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -427,8 +454,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
               <div className="bg-gray-50 p-3 sm:p-4 rounded-lg space-y-3">
                 {/* Step 1 */}
                 <div className="space-y-2">
-                  <div className="flex  justify-between sm:items-center gap-2">
-                    <span className="font-medium text-blue-700 text-xs  sm:text-base">
+                  <div className="flex justify-between sm:items-center gap-2">
+                    <span className="font-medium text-blue-700 text-xs sm:text-base">
                       Step 1: RMB Amount
                     </span>
                     <Badge
@@ -438,12 +465,12 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                       Qty × RMB Price
                     </Badge>
                   </div>
-                  <div className="flex  justify-between gap-1">
-                    <span className="text-xs  sm:text-base text-gray-600">
+                  <div className="flex justify-between gap-1">
+                    <span className="text-xs sm:text-base text-gray-600">
                       ({parseFloat(qty) || 0} × ¥
                       {(parseFloat(rmb_price) || 0).toFixed(2)})
                     </span>
-                    <span className="font-medium text-xs  sm:text-base">
+                    <span className="font-medium text-xs sm:text-base">
                       ¥{formatCurrency(previewValues.rmb_amount)}
                     </span>
                   </div>
@@ -453,8 +480,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
 
                 {/* Step 2 */}
                 <div className="space-y-2">
-                  <div className="flex  justify-between sm:items-center gap-2">
-                    <span className="font-medium text-green-700 text-xs  sm:text-base">
+                  <div className="flex justify-between sm:items-center gap-2">
+                    <span className="font-medium text-green-700 text-xs sm:text-base">
                       Step 2: Convert to LKR
                     </span>
                     <Badge
@@ -465,11 +492,11 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                     </Badge>
                   </div>
                   <div className="flex justify-between gap-1">
-                    <span className="text-xs  sm:text-base text-gray-600 break-words">
+                    <span className="text-xs sm:text-base text-gray-600 break-words">
                       (¥{formatCurrency(previewValues.rmb_amount)} ×{" "}
                       {exchangeRate.toFixed(4)})
                     </span>
-                    <span className="font-medium text-xs  sm:text-base">
+                    <span className="font-medium text-xs sm:text-base">
                       Rs {formatCurrency(previewValues.lkr_amount)}
                     </span>
                   </div>
@@ -477,26 +504,26 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
 
                 <Separator className="my-2" />
 
-                {/* Step 3 */}
+                {/* Step 3 - Updated CMB Calculation */}
                 <div className="space-y-2">
                   <div className="flex justify-between sm:items-center gap-2">
-                    <span className="font-medium text-purple-700 text-xs  sm:text-base">
-                      Step 3: CBM Calculation
+                    <span className="font-medium text-purple-700 text-xs sm:text-base">
+                      Step 3: CMB Value
                     </span>
                     <Badge
                       variant="outline"
                       className="self-start sm:self-center text-xs"
                     >
-                      LKR Amount × CBM Rate
+                      CBM Rate × CBM Amount
                     </Badge>
                   </div>
                   <div className="flex justify-between gap-1">
-                    <span className="text-xs  sm:text-base text-gray-600 break-words">
-                      (Rs {formatCurrency(previewValues.lkr_amount)} ×{" "}
-                      {parseFloat(cbm_rate) || 0})
+                    <span className="text-xs sm:text-base text-gray-600 break-words">
+                      ({parseFloat(cmb_rate) || 0} ×{" "}
+                      {parseFloat(cmb_amount) || 0})
                     </span>
-                    <span className="font-medium text-xs  sm:text-base">
-                      Rs {formatCurrency(previewValues.cbm_lkr)}
+                    <span className="font-medium text-xs sm:text-base">
+                      Rs {formatCurrency(previewValues.cmb_value)}
                     </span>
                   </div>
                 </div>
@@ -517,10 +544,10 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                     </Badge>
                   </div>
                   <div className="flex justify-between gap-1">
-                    <span className="text-xs  sm:text-base text-gray-600">
+                    <span className="text-xs sm:text-base text-gray-600">
                       Extra Tax
                     </span>
-                    <span className="font-medium text-xs  sm:text-base">
+                    <span className="font-medium text-xs sm:text-base">
                       Rs {formatCurrency(parseFloat(extra_tax) || 0)}
                     </span>
                   </div>
@@ -537,6 +564,11 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                     <span className="font-bold text-green-600 text-lg sm:text-xl">
                       Rs {formatCurrency(previewValues.final_value)}
                     </span>
+                  </div>
+                  <div className="text-xs sm:text-sm text-green-700">
+                    (Rs {formatCurrency(previewValues.lkr_amount)} + Rs{" "}
+                    {formatCurrency(previewValues.cmb_value)} + Rs{" "}
+                    {formatCurrency(parseFloat(extra_tax) || 0)})
                   </div>
 
                   {/* Unit Price Display */}

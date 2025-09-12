@@ -24,6 +24,9 @@ interface CalculationWithExchangeRate extends Calculation {
   exchange_rate?: number;
   item_name?: string;
   unit_price?: number;
+  cmb_rate?: number;
+  cmb_amount?: number;
+  cmb_value?: number;
 }
 
 export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
@@ -77,13 +80,13 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
         ) : (
           <>
             {/* Mobile Card Layout - Hidden on larger screens */}
-            <div className="block lg:hidden space-y-4">
+            <div className="block lg:hidden space-y-2">
               {calculations.map((calc) => (
                 <Card
                   key={calc.id}
                   className="border border-gray-200 shadow-sm"
                 >
-                  <CardContent className="p-4 space-y-3">
+                  <CardContent className="px-2 space-y-2">
                     {/* Header with item name and shop */}
                     <div className="space-y-2">
                       {calc.item_name && (
@@ -139,9 +142,9 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                         </p>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-gray-500 text-xs">CBM Rate</span>
+                        <span className="text-gray-500 text-xs">CBM Value</span>
                         <p className="font-medium">
-                          {formatCurrency(calc.cmb_rs)}
+                          Rs {formatCurrency(calc.cmb_value || 0)}
                         </p>
                       </div>
                     </div>
@@ -195,6 +198,14 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                       </summary>
                       <div className="mt-2 pt-2 border-t space-y-2 text-xs">
                         <div className="flex justify-between">
+                          <span className="text-gray-500">CBM Rate:</span>
+                          <span>{formatCurrency(calc.cmb_rate || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">CBM Amount:</span>
+                          <span>{formatCurrency(calc.cmb_amount || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
                           <span className="text-gray-500">Extra Tax:</span>
                           <span>Rs {formatCurrency(calc.extra_tax)}</span>
                         </div>
@@ -229,7 +240,7 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                         RMB Amount
                       </TableHead>
                       <TableHead className="text-right font-semibold">
-                        CBM Rate
+                        CBM Value
                       </TableHead>
                       <TableHead className="text-right font-semibold">
                         Extra Tax
@@ -280,7 +291,7 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                           ¥{formatCurrency(calc.rmb_amount)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {formatCurrency(calc.cmb_rs)}
+                          Rs {formatCurrency(calc.cmb_value || 0)}
                         </TableCell>
                         <TableCell className="text-right">
                           Rs {formatCurrency(calc.extra_tax)}
@@ -389,8 +400,8 @@ export function CalculationsTable({ refreshTrigger }: CalculationsTableProps) {
                               {formatCurrency(calc.rmb_price)}
                             </div>
                             <div className="text-gray-500">
-                              CBM: {formatCurrency(calc.cmb_rs)} | Tax: Rs{" "}
-                              {formatCurrency(calc.extra_tax)}
+                              CBM: Rs {formatCurrency(calc.cmb_value || 0)} |
+                              Tax: Rs {formatCurrency(calc.extra_tax)}
                             </div>
                           </div>
                         </TableCell>
