@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import { calculationSchema } from "@/app/lib/validations";
 
+// Define shop distribution interface
+interface ShopDistribution {
+  shop_name: string;
+  qty: number;
+  shop_final_value: number;
+  shop_unit_price: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -29,6 +37,9 @@ export async function POST(request: NextRequest) {
     const unit_price =
       validatedData.qty > 0 ? final_value / validatedData.qty : 0;
 
+    // Extract shop distribution data if provided
+    const shop_distribution: ShopDistribution[] = body.shop_distribution || [];
+
     const calculationData = {
       ...validatedData,
       rmb_amount,
@@ -37,6 +48,8 @@ export async function POST(request: NextRequest) {
       final_value,
       unit_price,
       exchange_rate: exchangeRate,
+      shop_distribution:
+        shop_distribution.length > 0 ? JSON.stringify(shop_distribution) : null,
       created_at: new Date().toISOString(),
     };
 
@@ -53,6 +66,11 @@ export async function POST(request: NextRequest) {
         { error: "Failed to save calculation" },
         { status: 500 }
       );
+    }
+
+    // Parse shop_distribution back to object for response
+    if (data.shop_distribution) {
+      data.shop_distribution = JSON.parse(data.shop_distribution);
     }
 
     return NextResponse.json(data);
@@ -77,7 +95,15 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(data);
+    // Parse shop_distribution from JSON string to object for all records
+    const processedData = data.map((record) => ({
+      ...record,
+      shop_distribution: record.shop_distribution
+        ? JSON.parse(record.shop_distribution)
+        : null,
+    }));
+
+    return NextResponse.json(processedData);
   } catch (error) {
     console.error("API error:", error);
     return NextResponse.json(

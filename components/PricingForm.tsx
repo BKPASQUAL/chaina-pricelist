@@ -73,11 +73,22 @@ interface CalculationRecord {
   unit_price: number;
   exchange_rate: number;
   created_at: string;
+  shop_distribution?: ShopDistribution[];
+}
+
+interface ShopDistribution {
+  shop_name: string;
+  qty: number;
+  shop_final_value: number;
+  shop_unit_price: number;
 }
 
 interface PricingFormProps {
   onCalculationSaved: () => void;
 }
+
+// Define the 5 shops
+const SHOPS = ["Gampaha", "Rathgama", "Waligama", "Mathara", "Kandy"];
 
 export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,6 +99,17 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [tempExchangeRate, setTempExchangeRate] = useState("");
 
+  // Shop distribution state
+  const [shopDistribution, setShopDistribution] = useState<{
+    [key: string]: number;
+  }>({
+    Gampaha: 0,
+    Rathgama: 0,
+    Waligama: 0,
+    Mathara: 0,
+    Kandy: 0,
+  });
+
   const [previewValues, setPreviewValues] = useState({
     rmb_amount: 0,
     lkr_amount: 0,
@@ -95,6 +117,8 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     final_value: 0,
     unit_price: 0,
   });
+
+  const [shopValues, setShopValues] = useState<ShopDistribution[]>([]);
 
   const {
     register,
@@ -137,6 +161,27 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     setTempExchangeRate("");
   };
 
+  // Handle shop quantity distribution
+  const handleShopQtyChange = (shopName: string, qty: number) => {
+    setShopDistribution((prev) => ({
+      ...prev,
+      [shopName]: qty || 0,
+    }));
+  };
+
+  // Auto-distribute quantity equally among shops
+  const autoDistributeQty = () => {
+    const totalQty = parseFloat(watch("qty")) || 0;
+    const qtyPerShop = totalQty / SHOPS.length;
+    const distribution: { [key: string]: number } = {};
+
+    SHOPS.forEach((shop) => {
+      distribution[shop] = parseFloat(qtyPerShop.toFixed(2));
+    });
+
+    setShopDistribution(distribution);
+  };
+
   // Watch form values for live preview
   const qty = watch("qty");
   const rmb_price = watch("rmb_price");
@@ -177,6 +222,25 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     });
   }, [qty, rmb_price, cmb_rate, cmb_amount, extra_tax, exchangeRate]);
 
+  // Calculate shop values when distribution changes
+  useEffect(() => {
+    if (previewValues.unit_price > 0) {
+      const shopVals: ShopDistribution[] = SHOPS.map((shopName) => {
+        const shopQty = shopDistribution[shopName] || 0;
+        const shop_final_value = shopQty * previewValues.unit_price;
+
+        return {
+          shop_name: shopName,
+          qty: shopQty,
+          shop_final_value,
+          shop_unit_price: previewValues.unit_price,
+        };
+      });
+
+      setShopValues(shopVals);
+    }
+  }, [shopDistribution, previewValues.unit_price]);
+
   const onSubmit = async (data: CalculationFormData) => {
     setIsSubmitting(true);
 
@@ -208,6 +272,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
         final_value,
         unit_price,
         exchange_rate: exchangeRate,
+        shop_distribution: shopValues.filter((shop) => shop.qty > 0), // Only include shops with quantity
       };
 
       const response = await fetch("/api/calculations", {
@@ -223,6 +288,14 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
       }
 
       reset();
+      // Reset shop distribution
+      setShopDistribution({
+        Gampaha: 0,
+        Rathgama: 0,
+        Waligama: 0,
+        Mathara: 0,
+        Kandy: 0,
+      });
       onCalculationSaved();
     } catch (error) {
       console.error("Error saving calculation:", error);
@@ -231,6 +304,12 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
       setIsSubmitting(false);
     }
   };
+
+  const totalDistributedQty = Object.values(shopDistribution).reduce(
+    (sum, qty) => sum + qty,
+    0
+  );
+  const originalQty = parseFloat(qty) || 0;
 
   return (
     <div className="w-full px-2 sm:px-1 py-1">
@@ -385,25 +464,6 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
 
               <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="cmb_rate" className="text-sm font-medium">
-                    CBM Rate
-                  </Label>
-                  <Input
-                    id="cmb_rate"
-                    type="number"
-                    step="0.01"
-                    {...register("cmb_rate")}
-                    placeholder="Enter CBM rate"
-                    className="mt-1"
-                  />
-                  {errors.cmb_rate && (
-                    <p className="text-xs sm:text-sm text-red-600 mt-1">
-                      {errors.cmb_rate.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
                   <Label htmlFor="cmb_amount" className="text-sm font-medium">
                     CBM Amount
                   </Label>
@@ -418,6 +478,24 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                   {errors.cmb_amount && (
                     <p className="text-xs sm:text-sm text-red-600 mt-1">
                       {errors.cmb_amount.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="cmb_rate" className="text-sm font-medium">
+                    CBM Rate
+                  </Label>
+                  <Input
+                    id="cmb_rate"
+                    type="number"
+                    step="0.01"
+                    {...register("cmb_rate")}
+                    placeholder="Enter CBM rate"
+                    className="mt-1"
+                  />
+                  {errors.cmb_rate && (
+                    <p className="text-xs sm:text-sm text-red-600 mt-1">
+                      {errors.cmb_rate.message}
                     </p>
                   )}
                 </div>
@@ -585,10 +663,96 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
               </div>
             </div>
 
+            {/* Shop Distribution Section */}
+            {previewValues.final_value > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h3 className="text-base sm:text-lg font-semibold">
+                      Shop Distribution
+                    </h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={autoDistributeQty}
+                      className="self-start sm:self-center"
+                    >
+                      Auto Distribute Equally
+                    </Button>
+                  </div>
+
+                  {/* Quantity Validation */}
+                  {totalDistributedQty !== originalQty && originalQty > 0 && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-800 text-sm font-medium">
+                          ⚠️ Quantity Mismatch:
+                        </span>
+                        <span className="text-yellow-700 text-sm">
+                          Total distributed ({totalDistributedQty}) ≠ Original
+                          quantity ({originalQty})
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Shop Distribution Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {SHOPS.map((shopName) => (
+                      <Card
+                        key={shopName}
+                        className="border border-gray-200 flex flex-row gap-2 p-3 items-center"
+                      >
+                        <CardTitle className="text-sm font-medium  w-1/3">
+                          {shopName}
+                        </CardTitle>
+                        <div className="flex flex-row items-center w-1/3">
+                          <Input
+                            id={`shop_${shopName}`}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={shopDistribution[shopName] || ""}
+                            onChange={(e) =>
+                              handleShopQtyChange(
+                                shopName,
+                                parseFloat(e.target.value)
+                              )
+                            }
+                            placeholder="0"
+                            className="mt-1 h-8 text-sm"
+                          />
+                        </div>
+
+                        {shopDistribution[shopName] > 0 && (
+                          <div className="bg-blue-50 p-2 rounded text-center w-1/3">
+                            <div className="font-semibold text-blue-600 text-sm">
+                              Rs
+                              {formatCurrency(
+                                shopDistribution[shopName] *
+                                  previewValues.unit_price
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Shop Distribution Summary */}
+                </div>
+              </>
+            )}
+
             <Button
               type="submit"
               className="w-full py-3 text-base font-medium"
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting ||
+                (originalQty > 0 && totalDistributedQty !== originalQty)
+              }
             >
               {isSubmitting ? "Saving..." : "Save Calculation"}
             </Button>
