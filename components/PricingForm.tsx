@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit3, Check, X, Plus, Store } from "lucide-react";
+import { Edit3, Check, X, Plus, Store, ChevronDown, ChevronUp } from "lucide-react";
 
 // Shop interface - simplified to only require shop_name
 interface Shop {
@@ -65,6 +65,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   const [shops, setShops] = useState<Shop[]>([]);
   const [isAddShopDialogOpen, setIsAddShopDialogOpen] = useState(false);
   const [isSubmittingShop, setIsSubmittingShop] = useState(false);
+  const [isBreakdownOpen, setIsBreakdownOpen] = useState(false); // New state for breakdown visibility
 
   // Exchange rate editing states
   const [isEditingRate, setIsEditingRate] = useState(false);
@@ -638,144 +639,159 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
 
             <Separator />
 
-            {/* Calculation Breakdown - Mobile Optimized */}
-            <div className="space-y-3">
-              <h3 className="text-base sm:text-lg font-semibold">
-                Calculation Breakdown
-              </h3>
-
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg space-y-3">
-                {/* Step 1 */}
-                <div className="space-y-2">
-                  <div className="flex justify-between sm:items-center gap-2">
-                    <span className="font-medium text-blue-700 text-xs sm:text-base">
-                      Step 1: RMB Amount
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="self-start sm:self-center text-xs"
-                    >
-                      Qty × RMB Price
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between gap-1">
-                    <span className="text-xs sm:text-base text-gray-600">
-                      ({parseFloat(formData.qty) || 0} × ¥
-                      {(parseFloat(formData.rmb_price) || 0).toFixed(2)})
-                    </span>
-                    <span className="font-medium text-xs sm:text-base">
-                      ¥{formatCurrency(previewValues.rmb_amount)}
-                    </span>
-                  </div>
-                </div>
-
-                <Separator className="my-2" />
-
-                {/* Step 2 */}
-                <div className="space-y-2">
-                  <div className="flex justify-between sm:items-center gap-2">
-                    <span className="font-medium text-green-700 text-xs sm:text-base">
-                      Step 2: Convert to LKR
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="self-start sm:self-center text-xs"
-                    >
-                      RMB × Exchange Rate
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between gap-1">
-                    <span className="text-xs sm:text-base text-gray-600 break-words">
-                      (¥{formatCurrency(previewValues.rmb_amount)} ×{" "}
-                      {exchangeRate.toFixed(4)})
-                    </span>
-                    <span className="font-medium text-xs sm:text-base">
-                      Rs {formatCurrency(previewValues.lkr_amount)}
-                    </span>
-                  </div>
-                </div>
-
-                <Separator className="my-2" />
-
-                {/* Step 3 - Updated CMB Calculation */}
-                <div className="space-y-2">
-                  <div className="flex justify-between sm:items-center gap-2">
-                    <span className="font-medium text-purple-700 text-xs sm:text-base">
-                      Step 3: CMB Value
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="self-start sm:self-center text-xs"
-                    >
-                      CBM Rate × CBM Amount
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between gap-1">
-                    <span className="text-xs sm:text-base text-gray-600 break-words">
-                      ({parseFloat(formData.cmb_rate) || 0} ×{" "}
-                      {parseFloat(formData.cmb_amount) || 0})
-                    </span>
-                    <span className="font-medium text-xs sm:text-base">
-                      Rs {formatCurrency(previewValues.cmb_value)}
-                    </span>
-                  </div>
-                </div>
-
-                <Separator className="my-2" />
-
-                {/* Step 4 */}
-                <div className="space-y-2">
-                  <div className="flex justify-between sm:items-center gap-2">
-                    <span className="font-medium text-orange-700 text-xs sm:text-base">
-                      Step 4: Extra Tax
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="self-start sm:self-center text-xs"
-                    >
-                      Additional LKR
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between gap-1">
-                    <span className="text-xs sm:text-base text-gray-600">
-                      Extra Tax
-                    </span>
-                    <span className="font-medium text-xs sm:text-base">
-                      Rs {formatCurrency(parseFloat(formData.extra_tax) || 0)}
-                    </span>
-                  </div>
-                </div>
-
-                <Separator className="my-3 border-2" />
-
-                {/* Final Result - Mobile Optimized */}
-                <div className="bg-green-100 p-3 sm:p-4 rounded-lg space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
-                    <span className="font-bold text-green-800 text-base sm:text-lg">
-                      Final Value (LKR):
-                    </span>
-                    <span className="font-bold text-green-600 text-lg sm:text-xl">
-                      Rs {formatCurrency(previewValues.final_value)}
-                    </span>
-                  </div>
-                  <div className="text-xs sm:text-sm text-green-700">
-                    (Rs {formatCurrency(previewValues.lkr_amount)} + Rs{" "}
-                    {formatCurrency(previewValues.cmb_value)} + Rs{" "}
-                    {formatCurrency(parseFloat(formData.extra_tax) || 0)})
-                  </div>
-
-                  {/* Unit Price Display */}
-                  <Separator className="my-2" />
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
-                    <span className="font-semibold text-green-700 text-sm sm:text-base">
-                      Unit Price (Final Value ÷ Qty):
-                    </span>
-                    <span className="font-semibold text-green-600 text-base sm:text-lg">
-                      Rs {formatCurrency(previewValues.unit_price)} per unit
-                    </span>
-                  </div>
-                </div>
+            {/* Calculation Summary (Always Visible) */}
+            <div className="bg-green-100 p-3 sm:p-4 rounded-lg space-y-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                <span className="font-bold text-green-800 text-base sm:text-lg">
+                  Final Value (LKR):
+                </span>
+                <span className="font-bold text-green-600 text-lg sm:text-xl">
+                  Rs {formatCurrency(previewValues.final_value)}
+                </span>
               </div>
+
+              {/* Unit Price Display */}
+              <Separator className="my-2" />
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                <span className="font-semibold text-green-700 text-sm sm:text-base">
+                  Unit Price (Final Value ÷ Qty):
+                </span>
+                <span className="font-semibold text-green-600 text-base sm:text-lg">
+                  Rs {formatCurrency(previewValues.unit_price)} per unit
+                </span>
+              </div>
+            </div>
+
+            {/* Collapsible Calculation Breakdown */}
+            <div className="space-y-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsBreakdownOpen(!isBreakdownOpen)}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                {isBreakdownOpen ? (
+                  <>
+                    <ChevronUp className="h-4 w-4" />
+                    Hide Calculation Breakdown
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4" />
+                    Show Calculation Breakdown
+                  </>
+                )}
+              </Button>
+
+              {/* Breakdown Content - Only show when isBreakdownOpen is true */}
+              {isBreakdownOpen && (
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-lg space-y-3">
+                  {/* Step 1 */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between sm:items-center gap-2">
+                      <span className="font-medium text-blue-700 text-xs sm:text-base">
+                        Step 1: RMB Amount
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="self-start sm:self-center text-xs"
+                      >
+                        Qty × RMB Price
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between gap-1">
+                      <span className="text-xs sm:text-base text-gray-600">
+                        ({parseFloat(formData.qty) || 0} × ¥
+                        {(parseFloat(formData.rmb_price) || 0).toFixed(2)})
+                      </span>
+                      <span className="font-medium text-xs sm:text-base">
+                        ¥{formatCurrency(previewValues.rmb_amount)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Step 2 */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between sm:items-center gap-2">
+                      <span className="font-medium text-green-700 text-xs sm:text-base">
+                        Step 2: Convert to LKR
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="self-start sm:self-center text-xs"
+                      >
+                        RMB × Exchange Rate
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between gap-1">
+                      <span className="text-xs sm:text-base text-gray-600 break-words">
+                        (¥{formatCurrency(previewValues.rmb_amount)} ×{" "}
+                        {exchangeRate.toFixed(4)})
+                      </span>
+                      <span className="font-medium text-xs sm:text-base">
+                        Rs {formatCurrency(previewValues.lkr_amount)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Step 3 - Updated CMB Calculation */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between sm:items-center gap-2">
+                      <span className="font-medium text-purple-700 text-xs sm:text-base">
+                        Step 3: CMB Value
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="self-start sm:self-center text-xs"
+                      >
+                        CBM Rate × CBM Amount
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between gap-1">
+                      <span className="text-xs sm:text-base text-gray-600 break-words">
+                        ({parseFloat(formData.cmb_rate) || 0} ×{" "}
+                        {parseFloat(formData.cmb_amount) || 0})
+                      </span>
+                      <span className="font-medium text-xs sm:text-base">
+                        Rs {formatCurrency(previewValues.cmb_value)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Step 4 */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between sm:items-center gap-2">
+                      <span className="font-medium text-orange-700 text-xs sm:text-base">
+                        Step 4: Extra Tax
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="self-start sm:self-center text-xs"
+                      >
+                        Additional LKR
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between gap-1">
+                      <span className="text-xs sm:text-base text-gray-600">
+                        Extra Tax
+                      </span>
+                      <span className="font-medium text-xs sm:text-base">
+                        Rs {formatCurrency(parseFloat(formData.extra_tax) || 0)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator className="my-3 border-2" />
+
+                  
+                </div>
+              )}
             </div>
 
             <Button
