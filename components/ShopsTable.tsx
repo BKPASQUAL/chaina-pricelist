@@ -185,7 +185,7 @@ export default function ShopsTable() {
         <div className="text-center py-12">
           <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 text-sm mb-2">
-            No shops found matching "{searchTerm}"
+            No shops found matching &ldquo;{searchTerm}&rdquo;
           </p>
           <button
             onClick={clearSearch}
