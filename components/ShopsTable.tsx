@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Store, Search, X } from "lucide-react";
 
@@ -12,6 +13,7 @@ interface Shop {
 }
 
 export default function ShopsTable() {
+  const router = useRouter();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,11 @@ export default function ShopsTable() {
   // Clear search function
   const clearSearch = () => {
     setSearchTerm("");
+  };
+
+  // Navigation function
+  const handleShopClick = (shopId: number) => {
+    router.push(`/shop/${shopId}`);
   };
 
   // Fetch shops from API
@@ -159,7 +166,8 @@ export default function ShopsTable() {
         {filteredShops.map((shop) => (
           <Card
             key={shop.id}
-            className="hover:shadow-md transition-shadow duration-200 cursor-pointer border border-gray-200 hover:border-blue-300"
+            onClick={() => handleShopClick(shop.id)}
+            className="hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 hover:border-blue-300 hover:scale-[1.02] active:scale-[0.98]"
           >
             <CardContent className="p-2">
               <div className="flex items-start gap-3">
