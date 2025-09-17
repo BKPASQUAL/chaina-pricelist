@@ -2,6 +2,14 @@
 "use client";
 
 import React, { useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import EditPricing from "./EditPricing";
 
 interface Calculation {
   id: string;
@@ -26,13 +34,20 @@ interface Calculation {
 interface ItemsTableProps {
   calculations: Calculation[];
   onCalculationUpdate?: () => void;
+  onEdit?: (calculation: Calculation) => void;
+  onDelete?: (id: string) => void;
 }
 
 export default function ItemsTable({
   calculations,
   onCalculationUpdate,
+  onEdit,
+  onDelete,
 }: ItemsTableProps) {
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedCalculation, setSelectedCalculation] =
+    useState<Calculation | null>(null);
 
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString("en-LK", {
@@ -49,6 +64,35 @@ export default function ItemsTable({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handleEdit = (calculation: Calculation) => {
+    setSelectedCalculation(calculation);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSave = (updatedCalculation: Calculation) => {
+    if (onEdit) {
+      onEdit(updatedCalculation);
+    }
+    if (onCalculationUpdate) {
+      onCalculationUpdate();
+    }
+    setIsEditModalOpen(false);
+    setSelectedCalculation(null);
+  };
+
+  const handleEditCancel = () => {
+    setIsEditModalOpen(false);
+    setSelectedCalculation(null);
+  };
+
+  const handleDelete = (id: string) => {
+    if (onDelete) {
+      if (window.confirm("Are you sure you want to delete this calculation?")) {
+        onDelete(id);
+      }
+    }
   };
 
   if (calculations.length === 0) {
@@ -74,11 +118,29 @@ export default function ItemsTable({
             <div className="text-xs text-gray-500">
               {formatDate(calculation.created_at)}
             </div>
-            <div className="text-right">
-              <div className="text-sm font-semibold text-green-600">
-                Rs.{formatCurrency(calculation.final_value)}
+            <div className="flex items-center space-x-2">
+              <div className="text-right mr-3">
+                <div className="text-sm font-semibold text-green-600">
+                  Rs.{formatCurrency(calculation.final_value)}
+                </div>
+                <div className="text-xs text-gray-500">Final Value</div>
               </div>
-              <div className="text-xs text-gray-500">Final Value</div>
+              <div className="flex space-x-1">
+                <button
+                  onClick={() => handleEdit(calculation)}
+                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+                  title="Edit calculation"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  onClick={() => handleDelete(calculation.id)}
+                  className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                  title="Delete calculation"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -158,6 +220,9 @@ export default function ItemsTable({
               <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Unit Price
               </th>
+              <th className="px-2 sm:px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -211,6 +276,24 @@ export default function ItemsTable({
                   </div>
                   <div className="hidden sm:block">
                     Rs.{formatCurrency(calculation.unit_price)}
+                  </div>
+                </td>
+                <td className="px-2 sm:px-3 py-2 whitespace-nowrap text-xs">
+                  <div className="flex justify-center space-x-1">
+                    <button
+                      onClick={() => handleEdit(calculation)}
+                      className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+                      title="Edit calculation"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(calculation.id)}
+                      className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                      title="Delete calculation"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -271,6 +354,22 @@ export default function ItemsTable({
           </span>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Pricing Calculation</DialogTitle>
+          </DialogHeader>
+          {selectedCalculation && (
+            <EditPricing
+              calculation={selectedCalculation}
+              onSave={handleEditSave}
+              onCancel={handleEditCancel}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
