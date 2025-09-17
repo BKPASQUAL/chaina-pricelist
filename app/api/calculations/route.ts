@@ -130,7 +130,6 @@ export async function GET() {
 }
 
 // PUT method for updating calculations
-// PUT method for updating calculations
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
@@ -330,6 +329,68 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Failed to update calculation",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE method for deleting calculations
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const calculationId = searchParams.get("id");
+
+    if (!calculationId) {
+      return NextResponse.json(
+        { error: "Calculation ID is required" },
+        { status: 400 }
+      );
+    }
+
+    console.log("Attempting to delete calculation:", calculationId); // Debug log
+
+    // Check if the calculation exists first
+    const { data: existingCalculation, error: fetchError } = await supabase
+      .from("calculations")
+      .select("id, item_name")
+      .eq("id", calculationId)
+      .single();
+
+    if (fetchError || !existingCalculation) {
+      console.error("Calculation not found:", fetchError);
+      return NextResponse.json(
+        { error: "Calculation not found" },
+        { status: 404 }
+      );
+    }
+
+    // Delete the calculation
+    const { error: deleteError } = await supabase
+      .from("calculations")
+      .delete()
+      .eq("id", calculationId);
+
+    if (deleteError) {
+      console.error("Supabase delete error:", deleteError);
+      return NextResponse.json(
+        { error: "Failed to delete calculation", details: deleteError.message },
+        { status: 500 }
+      );
+    }
+
+    console.log("Successfully deleted calculation:", calculationId); // Debug log
+
+    return NextResponse.json({
+      message: "Calculation deleted successfully",
+      deletedId: calculationId,
+    });
+  } catch (error) {
+    console.error("API delete error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to delete calculation",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
