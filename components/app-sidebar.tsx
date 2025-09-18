@@ -1,4 +1,10 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
+import {
+  Home,
+  Store, // for Shops
+  Package, // for Items
+  Search,
+  Settings,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -21,12 +27,12 @@ const items = [
   {
     title: "Shops",
     url: "/shop",
-    icon: Inbox,
+    icon: Store, // 🏪 better for Shops
   },
   {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
+    title: "Items",
+    url: "/items",
+    icon: Package, // 📦 better for Items
   },
   {
     title: "Search",
