@@ -962,7 +962,7 @@ export default function AllItemsPage() {
   );
 
   return (
-    <div className="container mx-auto px-1 py-8">
+    <div className="container mx-auto px-1 py-4">
       {/* Header */}
       {/* <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">All Items</h1>
@@ -972,8 +972,17 @@ export default function AllItemsPage() {
       </div> */}
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-2 mb-4">
+        {/* Export Button */}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
+          <button
+            onClick={exportData}
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Download size={16} />
+            <span>Export CSV</span>
+          </button>
           {/* Search */}
           <div className="relative">
             <Search
@@ -1002,19 +1011,10 @@ export default function AllItemsPage() {
               </option>
             ))}
           </select>
-
-          {/* Export Button */}
-          <button
-            onClick={exportData}
-            className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <Download size={16} />
-            <span>Export CSV</span>
-          </button>
         </div>
 
         {/* Results Summary */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0 text-sm text-gray-600">
+        {/* <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0 text-sm text-gray-600">
           <span>
             Showing {startIndex + 1}-
             {Math.min(endIndex, filteredCalculations.length)} of{" "}
@@ -1031,7 +1031,7 @@ export default function AllItemsPage() {
               )
             )}
           </span>
-        </div>
+        </div> */}
       </div>
 
       {/* View Toggle - Mobile Only */}
