@@ -8,12 +8,13 @@ interface Calculation {
   qty: number;
   final_value: number;
   rmb_amount: number;
-  item_name: string;
+  item_name: string; // Added item_name field
 }
 
 interface Shop {
   id: string;
   name: string;
+  // Add other shop properties as needed
 }
 
 interface DashboardStats {
@@ -44,21 +45,9 @@ const Dashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    // Simulate loading for demo - replace with actual API calls
     const fetchDashboardData = async (): Promise<void> => {
       try {
-        // Simulated data for demo
-        setTimeout(() => {
-          setStats({
-            totalItems: 150,
-            totalShops: 12,
-            totalAmountLKR: 2500000,
-            totalAmountCNY: 75000,
-            loading: false,
-          });
-        }, 1500);
-
-        /* Replace simulation with actual API calls:
+        // Fetch calculations and shops data
         const [calculationsResponse, shopsResponse] = await Promise.all([
           fetch("/api/calculations"),
           fetch("/api/shops"),
@@ -67,6 +56,7 @@ const Dashboard: React.FC = () => {
         const calculations: Calculation[] = await calculationsResponse.json();
         const shops: Shop[] = await shopsResponse.json();
 
+        // Calculate statistics
         const uniqueItemNames = new Set(
           calculations.map((calc) => calc.item_name.toLowerCase().trim())
         );
@@ -88,7 +78,6 @@ const Dashboard: React.FC = () => {
           totalAmountCNY,
           loading: false,
         });
-        */
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         setStats((prev) => ({ ...prev, loading: false }));
@@ -125,15 +114,15 @@ const Dashboard: React.FC = () => {
       className={`${bgColor} rounded-xl p-4 shadow-lg transform hover:scale-105 transition-all duration-200`}
     >
       <div className="flex items-center justify-between mb-3">
-        <div className="rounded-lg  bg-opacity-10">
-          <Icon className="w-6 h-6 text-white" />
+        <div className={` rounded-lg  bg-opacity-20`}>
+          <Icon className={`w-6 h-6 ${textColor}`} />
         </div>
       </div>
       <div>
         <h3 className={`text-sm font-medium ${textColor} opacity-90 mb-1`}>
           {title}
         </h3>
-        <p className={`text-2xl font-bold ${textColor} mb-1`}>{value}</p>
+        <p className={`text-xl font-bold ${textColor} mb-1`}>{value}</p>
         {fullValue && (
           <p className={`text-sm font-semibold ${textColor} opacity-85 mb-1`}>
             {fullValue}
@@ -148,7 +137,7 @@ const Dashboard: React.FC = () => {
 
   if (stats.loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-100 p-4">
+      <div className="min-h-screen  p-4">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
@@ -158,16 +147,9 @@ const Dashboard: React.FC = () => {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="bg-white rounded-xl p-6 shadow-lg animate-pulse"
+                className="bg-white rounded-xl p-4 shadow-lg animate-pulse"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
-                </div>
-                <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-6 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-full"></div>
-                </div>
+                <div className="w-full h-20 bg-gray-200 rounded"></div>
               </div>
             ))}
           </div>
@@ -177,7 +159,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br  to-indigo-100 p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
