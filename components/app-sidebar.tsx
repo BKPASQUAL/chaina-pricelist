@@ -2,8 +2,8 @@ import {
   Home,
   Store, // for Shops
   Package, // for Items
-  Search,
   Settings,
+  BarChart3,
 } from "lucide-react";
 
 import {
@@ -35,9 +35,9 @@ const items = [
     icon: Package, // 📦 better for Items
   },
   {
-    title: "Search",
-    url: "#",
-    icon: Search,
+    title: "Analysis", // Fixed typo
+    url: "/analysis", // Also fixed URL to match
+    icon: BarChart3, // More suitable for analysis
   },
   {
     title: "Settings",
