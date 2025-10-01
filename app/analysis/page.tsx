@@ -1,27 +1,35 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, Store, DollarSign, TrendingUp } from "lucide-react";
+import {
+  ShoppingCart,
+  Store,
+  DollarSign,
+  TrendingUp,
+  Package,
+} from "lucide-react";
 
 // TypeScript interfaces
 interface Calculation {
   qty: number;
   final_value: number;
   rmb_amount: number;
-  item_name: string; // Added item_name field
+  item_name: string;
+  cmb_rate?: number;
+  cmb_amount?: number;
 }
 
 interface Shop {
   id: string;
   name: string;
-  // Add other shop properties as needed
 }
 
 interface DashboardStats {
   totalItems: number;
   totalShops: number;
   totalAmountLKR: number;
-  totalAmountCNY: number;
+  totalRMBValue: number;
+  totalCBMValueLKR: number;
   loading: boolean;
 }
 
@@ -40,7 +48,8 @@ const Dashboard: React.FC = () => {
     totalItems: 0,
     totalShops: 0,
     totalAmountLKR: 0,
-    totalAmountCNY: 0,
+    totalRMBValue: 0,
+    totalCBMValueLKR: 0,
     loading: true,
   });
 
@@ -66,8 +75,17 @@ const Dashboard: React.FC = () => {
           (sum: number, calc: Calculation) => sum + calc.final_value,
           0
         );
-        const totalAmountCNY = calculations.reduce(
+        const totalRMBValue = calculations.reduce(
           (sum: number, calc: Calculation) => sum + calc.rmb_amount,
+          0
+        );
+
+        // Calculate total CBM Value (CBM Rate × CBM Amount)
+        const totalCBMValueLKR = calculations.reduce(
+          (sum: number, calc: Calculation) => {
+            const cbmValue = (calc.cmb_rate || 0) * (calc.cmb_amount || 0);
+            return sum + cbmValue;
+          },
           0
         );
 
@@ -75,7 +93,8 @@ const Dashboard: React.FC = () => {
           totalItems,
           totalShops,
           totalAmountLKR,
-          totalAmountCNY,
+          totalRMBValue,
+          totalCBMValueLKR,
           loading: false,
         });
       } catch (error) {
@@ -144,7 +163,7 @@ const Dashboard: React.FC = () => {
             <p className="text-gray-600">Loading your business overview...</p>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
                 className="bg-white rounded-xl p-4 shadow-lg animate-pulse"
@@ -167,8 +186,8 @@ const Dashboard: React.FC = () => {
           <p className="text-gray-600">Overview of your business performance</p>
         </div>
 
-        {/* Stats Cards - Mobile: 2 per row, Desktop: 4 per row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Stats Cards - Mobile: 2 per row, Desktop: flexible grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
           <StatCard
             icon={ShoppingCart}
             title="Total Items"
@@ -199,11 +218,21 @@ const Dashboard: React.FC = () => {
 
           <StatCard
             icon={TrendingUp}
-            title="Total Amount (CNY)"
-            value={formatMillions(stats.totalAmountCNY, "¥")}
-            fullValue={formatFullAmount(stats.totalAmountCNY, "¥")}
-            subtitle="Chinese Yuan"
+            title="Total RMB Value"
+            value={formatMillions(stats.totalRMBValue, "¥")}
+            fullValue={formatFullAmount(stats.totalRMBValue, "¥")}
+            subtitle="Chinese Yuan (RMB)"
             bgColor="bg-gradient-to-br from-orange-500 to-orange-600"
+            textColor="text-white"
+          />
+
+          <StatCard
+            icon={Package}
+            title="Total CBM Value"
+            value={formatMillions(stats.totalCBMValueLKR, "Rs")}
+            fullValue={formatFullAmount(stats.totalCBMValueLKR, "Rs")}
+            subtitle="CBM Rate × CBM Amount"
+            bgColor="bg-gradient-to-br from-pink-500 to-pink-600"
             textColor="text-white"
           />
         </div>
