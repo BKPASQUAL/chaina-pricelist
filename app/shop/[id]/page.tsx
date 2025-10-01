@@ -73,6 +73,14 @@ export default function ShopPage() {
     (sum, calc) => sum + calc.final_value,
     0
   );
+  const totalCmbValue = calculations.reduce(
+    (sum, calc) => sum + calc.cmb_value,
+    0
+  );
+  const totalRmbAmount = calculations.reduce(
+    (sum, calc) => sum + calc.rmb_amount,
+    0
+  );
 
   if (loading) {
     return (
@@ -80,6 +88,8 @@ export default function ShopPage() {
         <div className="animate-pulse">
           <div className="h-6 bg-gray-200 rounded mb-4 w-48"></div>
           <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-16 bg-gray-200 rounded"></div>
             <div className="h-16 bg-gray-200 rounded"></div>
             <div className="h-16 bg-gray-200 rounded"></div>
           </div>
@@ -124,6 +134,37 @@ export default function ShopPage() {
             </h3>
             <div className="text-sm font-bold text-green-600">
               {totalAmount.toLocaleString("en-LK", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* CMB Value Card */}
+        <div className="bg-white rounded-lg p-2 border border-gray-200">
+          <div className="flex flex-col">
+            <h3 className="text-sm font-semibold text-gray-600 mb-2">
+              CMB Value (LKR)
+            </h3>
+            <div className="text-sm font-bold text-purple-600">
+              {totalCmbValue.toLocaleString("en-LK", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* RMB Amount Card */}
+        <div className="bg-white rounded-lg p-2 border border-gray-200">
+          <div className="flex flex-col">
+            <h3 className="text-sm font-semibold text-gray-600 mb-2">
+              RMB Amount
+            </h3>
+            <div className="text-sm font-bold text-orange-600">
+              ¥
+              {totalRmbAmount.toLocaleString("en-US", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
