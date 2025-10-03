@@ -21,7 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit3, Check, X, Plus, Store, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Edit3,
+  Check,
+  X,
+  Plus,
+  Store,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 // Shop interface - simplified to only require shop_name
 interface Shop {
@@ -60,12 +68,12 @@ const formatCurrency = (value: number) => {
 
 export function PricingForm({ onCalculationSaved }: PricingFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [exchangeRate, setExchangeRate] = useState(42.1);
+  const [exchangeRate, setExchangeRate] = useState(43.20);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
   const [isAddShopDialogOpen, setIsAddShopDialogOpen] = useState(false);
   const [isSubmittingShop, setIsSubmittingShop] = useState(false);
-  const [isBreakdownOpen, setIsBreakdownOpen] = useState(false); // New state for breakdown visibility
+  const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
 
   // Exchange rate editing states
   const [isEditingRate, setIsEditingRate] = useState(false);
@@ -98,9 +106,14 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     unit_price: 0,
   });
 
-  // Load shops on component mount
+  // Load shops on component mount and restore last selected shop
   useEffect(() => {
     loadShops();
+    // Load last selected shop from localStorage
+    const savedShopId = localStorage.getItem("lastSelectedShopId");
+    if (savedShopId) {
+      setFormData((prev) => ({ ...prev, shop_id: savedShopId }));
+    }
   }, []);
 
   const loadShops = async () => {
@@ -183,6 +196,15 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
     }
   };
 
+  // Handle shop selection change and save to localStorage
+  const handleShopChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, shop_id: value }));
+    localStorage.setItem("lastSelectedShopId", value);
+    if (errors.shop_id) {
+      setErrors((prev) => ({ ...prev, shop_id: "" }));
+    }
+  };
+
   const handleShopInputChange = (field: string, value: string) => {
     setShopFormData((prev) => ({ ...prev, [field]: value }));
     if (shopErrors[field]) {
@@ -211,6 +233,7 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
       const newShop = await response.json();
       setShops([...shops, newShop]);
       setFormData((prev) => ({ ...prev, shop_id: newShop.id }));
+      localStorage.setItem("lastSelectedShopId", newShop.id);
       setShopFormData({
         shop_name: "",
       });
@@ -320,9 +343,11 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
         throw new Error("Failed to save calculation");
       }
 
+      // Keep the shop_id when resetting the form
+      const currentShopId = formData.shop_id;
       setFormData({
         item_name: "",
-        shop_id: "",
+        shop_id: currentShopId,
         qty: "",
         rmb_price: "",
         cmb_rate: "",
@@ -497,14 +522,14 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                 )}
               </div>
 
-              {/* Shop Selection Dropdown - Simplified to show only shop name */}
+              {/* Shop Selection Dropdown - Now with persistence */}
               <div className="w-full">
                 <Label htmlFor="shop_id" className="text-sm font-medium">
                   Shop Name
                 </Label>
                 <Select
                   value={formData.shop_id}
-                  onValueChange={(value) => handleInputChange("shop_id", value)}
+                  onValueChange={handleShopChange}
                 >
                   <SelectTrigger className="mt-1 w-full">
                     <SelectValue placeholder="Select a shop" />
@@ -788,8 +813,6 @@ export function PricingForm({ onCalculationSaved }: PricingFormProps) {
                   </div>
 
                   <Separator className="my-3 border-2" />
-
-                  
                 </div>
               )}
             </div>

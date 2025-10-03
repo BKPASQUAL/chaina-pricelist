@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get exchange rate from body or use default
-    const exchangeRate = body.exchange_rate || 42.1;
+    const exchangeRate = body.exchange_rate || 43.20;
 
     // Calculate values following the calculation flow:
     // Step 1: Qty × RMB Price = RMB Amount
@@ -417,7 +417,7 @@ export async function PATCH() {
   } catch (error) {
     console.error("Exchange rate fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch exchange rate", rate: 42.1 }, // Fallback rate
+      { error: "Failed to fetch exchange rate", rate: 43.20 }, // Fallback rate
       { status: 500 }
     );
   }
