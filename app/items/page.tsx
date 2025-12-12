@@ -252,11 +252,14 @@ export default function AllItemsPage() {
     setCalculationToDelete(null);
   };
 
+  // Fixed exportData function - paste this into your app/items/page.tsx
+  // Replace the entire exportData function with this version
+
   const exportData = () => {
     // Create workbook and worksheet
     const workbook = XLSX.utils.book_new();
 
-    // Group calculations by shop - Fix: Add proper type annotation
+    // Group calculations by shop
     const groupedByShop: Record<string, Calculation[]> =
       filteredCalculations.reduce((groups, calc) => {
         const shopName = calc.shops?.shop_name || "No Shop";
@@ -294,11 +297,11 @@ export default function AllItemsPage() {
     ];
 
     let currentRow = 2;
-    const shopRows: number[] = []; // Fix: Add proper type annotation
+    const shopRows: number[] = [];
     const mergeRanges: {
       s: { c: number; r: number };
       e: { c: number; r: number };
-    }[] = []; // Fix: Add proper type annotation
+    }[] = [];
 
     // Add title merge range
     mergeRanges.push({ s: { c: 0, r: 0 }, e: { c: headers.length - 1, r: 0 } });
@@ -307,7 +310,7 @@ export default function AllItemsPage() {
     Object.keys(groupedByShop)
       .sort()
       .forEach((shopName) => {
-        const shopItems = groupedByShop[shopName]; // This now works because groupedByShop has proper type
+        const shopItems = groupedByShop[shopName];
 
         // Add shop name row
         const shopRow: (string | number)[] = [shopName];
@@ -325,22 +328,22 @@ export default function AllItemsPage() {
         wsData.push(headers);
         currentRow++;
 
-        // Add items for this shop - Fix: Add type annotation for calc parameter
+        // Add items for this shop - NO .toFixed() to preserve all decimals
         shopItems.forEach((calc: Calculation) => {
           const itemRow: (string | number)[] = [
             calc.item_name || "",
             formatDate(calc.created_at),
-            calc.qty,
-            calc.rmb_price.toFixed(2),
-            calc.rmb_amount.toFixed(2),
-            calc.lkr_amount.toFixed(2),
-            calc.cmb_rate.toFixed(2),
-            calc.cmb_amount.toFixed(2),
-            calc.cmb_value.toFixed(2),
-            calc.extra_tax.toFixed(2),
-            calc.final_value.toFixed(2),
-            calc.unit_price.toFixed(2),
-            calc.exchange_rate.toFixed(2),
+            calc.qty, // Pure number - no rounding
+            calc.rmb_price, // Pure number - no rounding
+            calc.rmb_amount, // Pure number - no rounding
+            calc.lkr_amount, // Pure number - no rounding
+            calc.cmb_rate, // Pure number - no rounding
+            calc.cmb_amount, // Pure number - preserves 0.039 exactly!
+            calc.cmb_value, // Pure number - no rounding
+            calc.extra_tax, // Pure number - no rounding
+            calc.final_value, // Pure number - no rounding
+            calc.unit_price, // Pure number - no rounding
+            calc.exchange_rate, // Pure number - no rounding
           ];
           wsData.push(itemRow);
           currentRow++;
@@ -354,10 +357,10 @@ export default function AllItemsPage() {
     // Create worksheet
     const worksheet = XLSX.utils.aoa_to_sheet(wsData);
 
-    // Apply merges - Fix: Add null check
+    // Apply merges
     if (!worksheet["!merges"]) worksheet["!merges"] = [];
     mergeRanges.forEach((range) => {
-      worksheet["!merges"]?.push(range); // Use optional chaining
+      worksheet["!merges"]?.push(range);
     });
 
     // Style the title row (row 1)
@@ -372,17 +375,16 @@ export default function AllItemsPage() {
         };
       }
 
-      // Style shop header rows (green background and center alignment)
-      // Style shop name rows (center + green highlight only)
+      // Style shop name rows (green background and center alignment)
       shopRows.forEach((rowIndex: number) => {
-        const cellAddress = XLSX.utils.encode_cell({ c: 0, r: rowIndex }); // Only first cell
+        const cellAddress = XLSX.utils.encode_cell({ c: 0, r: rowIndex });
         if (!worksheet[cellAddress]) {
           worksheet[cellAddress] = { v: "", t: "s" };
         }
         worksheet[cellAddress].s = {
-          font: { bold: true, size: 14, color: { rgb: "FFFFFF" } }, // White text
+          font: { bold: true, size: 14, color: { rgb: "FFFFFF" } },
           alignment: { horizontal: "center", vertical: "center" },
-          fill: { fgColor: { rgb: "70AD47" } }, // Green background
+          fill: { fgColor: { rgb: "70AD47" } },
           border: {
             top: { style: "thin", color: { rgb: "000000" } },
             bottom: { style: "thin", color: { rgb: "000000" } },
@@ -411,6 +413,28 @@ export default function AllItemsPage() {
           });
         }
       });
+
+      // IMPORTANT: Set number format for decimal columns to show all decimals
+      // This ensures Excel displays values like 0.039 correctly
+      const decimalColumns = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // All numeric columns except date
+      wsData.forEach((row, rowIndex) => {
+        if (rowIndex > 2 && row.length > 1) {
+          // Skip title and header rows
+          decimalColumns.forEach((colIndex) => {
+            const cellAddress = XLSX.utils.encode_cell({
+              c: colIndex,
+              r: rowIndex,
+            });
+            if (
+              worksheet[cellAddress] &&
+              typeof worksheet[cellAddress].v === "number"
+            ) {
+              // Use General number format to show all decimals without rounding
+              worksheet[cellAddress].z = "0.##########"; // Shows up to 10 decimal places
+            }
+          });
+        }
+      });
     } catch (error) {
       console.warn(
         "Styling failed, but Excel file will still be created:",
@@ -422,16 +446,16 @@ export default function AllItemsPage() {
     const colWidths = [
       { wch: 25 }, // Item Name
       { wch: 18 }, // Date
-      { wch: 10 }, // Quantity
-      { wch: 12 }, // RMB Price
-      { wch: 12 }, // RMB Amount
-      { wch: 12 }, // LKR Amount
-      { wch: 12 }, // CMB Rate
-      { wch: 12 }, // CMB Amount
-      { wch: 12 }, // CMB Value
-      { wch: 12 }, // Extra Tax
-      { wch: 12 }, // Final Value
-      { wch: 12 }, // Unit Price
+      { wch: 12 }, // Quantity
+      { wch: 15 }, // RMB Price
+      { wch: 15 }, // RMB Amount
+      { wch: 15 }, // LKR Amount
+      { wch: 15 }, // CMB Rate
+      { wch: 15 }, // CMB Amount (wider to show decimals)
+      { wch: 15 }, // CMB Value
+      { wch: 15 }, // Extra Tax
+      { wch: 15 }, // Final Value
+      { wch: 15 }, // Unit Price
       { wch: 15 }, // Exchange Rate
     ];
     worksheet["!cols"] = colWidths;
